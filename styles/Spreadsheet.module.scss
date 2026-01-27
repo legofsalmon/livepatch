@@ -84,6 +84,17 @@
 .columnHeader {
   top: 0;
   background-color: #ecf0f1;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #d5dbdb;
+  }
+
+  &.editingHeader {
+    background-color: #d5dbdb;
+  }
 }
 
 // Mobile Responsive Styles

@@ -30,7 +30,8 @@ export default function Home() {
           rows: 10,
           cols: 10,
           cells: {},
-          rowHeaders: {}
+          rowHeaders: {},
+          columnHeaders: {}
         }
         set(spreadsheetRef, defaultData)
         setSpreadsheetData(defaultData)
@@ -44,7 +45,8 @@ export default function Home() {
         rows: 10,
         cols: 10,
         cells: {},
-        rowHeaders: {}
+        rowHeaders: {},
+        columnHeaders: {}
       }
       setSpreadsheetData(defaultData)
     })
@@ -113,6 +115,7 @@ export default function Home() {
     
     const newCols = currentCols - 1
     const newCells = { ...spreadsheetData.cells }
+    const newColumnHeaders = { ...spreadsheetData.columnHeaders }
     
     // Remove cells from the last column
     Object.keys(newCells).forEach(cellKey => {
@@ -122,10 +125,16 @@ export default function Home() {
       }
     })
     
+    // Remove column header for the last column
+    if (newColumnHeaders[newCols]) {
+      delete newColumnHeaders[newCols]
+    }
+    
     const newData = {
       ...spreadsheetData,
       cols: newCols,
-      cells: newCells
+      cells: newCells,
+      columnHeaders: newColumnHeaders
     }
     updateSpreadsheet(newData)
   }
@@ -153,6 +162,17 @@ export default function Home() {
     updateSpreadsheet(newData)
   }
 
+  const updateColumnHeader = (col, value) => {
+    const newData = {
+      ...spreadsheetData,
+      columnHeaders: {
+        ...spreadsheetData.columnHeaders,
+        [col]: value
+      }
+    }
+    updateSpreadsheet(newData)
+  }
+
   return (
     <div className={styles.app}>
       <header className={styles.appHeader}>
@@ -174,8 +194,10 @@ export default function Home() {
           cols={spreadsheetData.cols || 10}
           cells={spreadsheetData.cells || {}}
           rowHeaders={spreadsheetData.rowHeaders || {}}
+          columnHeaders={spreadsheetData.columnHeaders || {}}
           onUpdateCell={updateCell}
           onUpdateRowHeader={updateRowHeader}
+          onUpdateColumnHeader={updateColumnHeader}
         />
       </div>
     </div>

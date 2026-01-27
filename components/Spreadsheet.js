@@ -3,21 +3,12 @@
 import { useState } from 'react'
 import Cell from './Cell'
 import RowHeader from './RowHeader'
+import ColumnHeader from './ColumnHeader'
 import styles from '../styles/Spreadsheet.module.scss'
 
-export default function Spreadsheet({ rows, cols, cells, rowHeaders, onUpdateCell, onUpdateRowHeader }) {
+export default function Spreadsheet({ rows, cols, cells, rowHeaders, columnHeaders, onUpdateCell, onUpdateRowHeader, onUpdateColumnHeader }) {
   const [selectedCell, setSelectedCell] = useState(null)
 
-  // Generate column headers (A, B, C, ...)
-  const getColumnLabel = (index) => {
-    let label = ''
-    let num = index
-    while (num >= 0) {
-      label = String.fromCharCode(65 + (num % 26)) + label
-      num = Math.floor(num / 26) - 1
-    }
-    return label
-  }
 
   const handleCellClick = (row, col) => {
     setSelectedCell({ row, col })
@@ -34,9 +25,12 @@ export default function Spreadsheet({ rows, cols, cells, rowHeaders, onUpdateCel
           <tr>
             <th className={styles.rowHeader}></th>
             {Array.from({ length: cols }, (_, i) => (
-              <th key={i} className={styles.columnHeader}>
-                {getColumnLabel(i)}
-              </th>
+              <ColumnHeader
+                key={i}
+                col={i}
+                value={columnHeaders[i]}
+                onUpdate={onUpdateColumnHeader}
+              />
             ))}
           </tr>
         </thead>
