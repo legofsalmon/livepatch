@@ -36,7 +36,7 @@ Live Patch is a web-based collaborative spreadsheet application that enables mul
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/legofsalmon/livepatch.git
+git clone <repository-url>
 cd livepatch
 ```
 
@@ -45,10 +45,13 @@ cd livepatch
 npm install
 ```
 
-3. Configure Firebase:
+3. Configure Firebase (Optional - works offline with demo credentials):
    - Create a Firebase project at https://console.firebase.google.com/
    - Enable Realtime Database
-   - Update `src/firebaseConfig.js` with your Firebase project credentials
+   - Copy `.env.example` to `.env`
+   - Add your Firebase project credentials to `.env`
+   
+   **Note**: The application works offline with demo credentials for development. For production deployment with real-time collaboration, configure your own Firebase project.
 
 4. Start the development server:
 ```bash
