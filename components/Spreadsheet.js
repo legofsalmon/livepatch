@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import Cell from './Cell'
+import RowHeader from './RowHeader'
 import styles from '../styles/Spreadsheet.module.scss'
 
-export default function Spreadsheet({ rows, cols, cells, onUpdateCell }) {
+export default function Spreadsheet({ rows, cols, cells, rowHeaders, onUpdateCell, onUpdateRowHeader }) {
   const [selectedCell, setSelectedCell] = useState(null)
 
   // Generate column headers (A, B, C, ...)
@@ -42,7 +43,11 @@ export default function Spreadsheet({ rows, cols, cells, onUpdateCell }) {
         <tbody>
           {Array.from({ length: rows }, (_, rowIndex) => (
             <tr key={rowIndex}>
-              <td className={styles.rowHeader}>{rowIndex + 1}</td>
+              <RowHeader 
+                row={rowIndex}
+                value={rowHeaders[rowIndex]}
+                onUpdate={onUpdateRowHeader}
+              />
               {Array.from({ length: cols }, (_, colIndex) => {
                 const cellKey = `${rowIndex}-${colIndex}`
                 const cellData = cells[cellKey] || { value: '', formatting: {} }

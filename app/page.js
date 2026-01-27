@@ -29,7 +29,8 @@ export default function Home() {
         const defaultData = {
           rows: 10,
           cols: 10,
-          cells: {}
+          cells: {},
+          rowHeaders: {}
         }
         set(spreadsheetRef, defaultData)
         setSpreadsheetData(defaultData)
@@ -42,7 +43,8 @@ export default function Home() {
       const defaultData = {
         rows: 10,
         cols: 10,
-        cells: {}
+        cells: {},
+        rowHeaders: {}
       }
       setSpreadsheetData(defaultData)
     })
@@ -81,6 +83,7 @@ export default function Home() {
     
     const newRows = currentRows - 1
     const newCells = { ...spreadsheetData.cells }
+    const newRowHeaders = { ...spreadsheetData.rowHeaders }
     
     // Remove cells from the last row
     Object.keys(newCells).forEach(cellKey => {
@@ -90,10 +93,16 @@ export default function Home() {
       }
     })
     
+    // Remove row header for the last row
+    if (newRowHeaders[newRows]) {
+      delete newRowHeaders[newRows]
+    }
+    
     const newData = {
       ...spreadsheetData,
       rows: newRows,
-      cells: newCells
+      cells: newCells,
+      rowHeaders: newRowHeaders
     }
     updateSpreadsheet(newData)
   }
@@ -133,6 +142,17 @@ export default function Home() {
     updateSpreadsheet(newData)
   }
 
+  const updateRowHeader = (row, value) => {
+    const newData = {
+      ...spreadsheetData,
+      rowHeaders: {
+        ...spreadsheetData.rowHeaders,
+        [row]: value
+      }
+    }
+    updateSpreadsheet(newData)
+  }
+
   return (
     <div className={styles.app}>
       <header className={styles.appHeader}>
@@ -153,7 +173,9 @@ export default function Home() {
           rows={spreadsheetData.rows || 10}
           cols={spreadsheetData.cols || 10}
           cells={spreadsheetData.cells || {}}
+          rowHeaders={spreadsheetData.rowHeaders || {}}
           onUpdateCell={updateCell}
+          onUpdateRowHeader={updateRowHeader}
         />
       </div>
     </div>
