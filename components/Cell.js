@@ -98,6 +98,7 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
         <FormattingToolbar
           formatting={localFormatting}
           onFormatChange={handleFormatChange}
+          isFirstRow={row === 0}
         />
       )}
       {isEditing ? (

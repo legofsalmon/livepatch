@@ -75,6 +75,52 @@ export default function Home() {
     updateSpreadsheet(newData)
   }
 
+  const removeRow = () => {
+    const currentRows = spreadsheetData.rows || 10
+    if (currentRows <= 1) return // Prevent removing all rows
+    
+    const newRows = currentRows - 1
+    const newCells = { ...spreadsheetData.cells }
+    
+    // Remove cells from the last row
+    Object.keys(newCells).forEach(cellKey => {
+      const [row] = cellKey.split('-').map(Number)
+      if (row >= newRows) {
+        delete newCells[cellKey]
+      }
+    })
+    
+    const newData = {
+      ...spreadsheetData,
+      rows: newRows,
+      cells: newCells
+    }
+    updateSpreadsheet(newData)
+  }
+
+  const removeColumn = () => {
+    const currentCols = spreadsheetData.cols || 10
+    if (currentCols <= 1) return // Prevent removing all columns
+    
+    const newCols = currentCols - 1
+    const newCells = { ...spreadsheetData.cells }
+    
+    // Remove cells from the last column
+    Object.keys(newCells).forEach(cellKey => {
+      const [, col] = cellKey.split('-').map(Number)
+      if (col >= newCols) {
+        delete newCells[cellKey]
+      }
+    })
+    
+    const newData = {
+      ...spreadsheetData,
+      cols: newCols,
+      cells: newCells
+    }
+    updateSpreadsheet(newData)
+  }
+
   const updateCell = (row, col, value, formatting) => {
     const cellKey = `${row}-${col}`
     const newData = {
@@ -96,7 +142,12 @@ export default function Home() {
           <span>{isConnected ? 'Connected' : 'Offline'}</span>
         </div>
       </header>
-      <Toolbar onAddRow={addRow} onAddColumn={addColumn} />
+      <Toolbar 
+        onAddRow={addRow} 
+        onAddColumn={addColumn}
+        onRemoveRow={removeRow}
+        onRemoveColumn={removeColumn}
+      />
       <div className={styles.spreadsheetContainer}>
         <Spreadsheet
           rows={spreadsheetData.rows || 10}

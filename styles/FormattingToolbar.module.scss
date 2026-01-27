@@ -11,6 +11,11 @@
   gap: 0.25rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   z-index: 100;
+
+  &.positionBelow {
+    top: 100%;
+    margin-top: 2px;
+  }
 }
 
 .formatButton {

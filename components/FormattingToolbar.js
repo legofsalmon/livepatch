@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import styles from '../styles/FormattingToolbar.module.scss'
 
-export default function FormattingToolbar({ formatting, onFormatChange }) {
+export default function FormattingToolbar({ formatting, onFormatChange, isFirstRow = false }) {
   const [showColorPicker, setShowColorPicker] = useState(false)
 
   const toggleBold = () => {
@@ -30,7 +30,7 @@ export default function FormattingToolbar({ formatting, onFormatChange }) {
   ]
 
   return (
-    <div className={styles.formattingToolbar}>
+    <div className={`${styles.formattingToolbar} ${isFirstRow ? styles.positionBelow : ''}`}>
       <button
         className={`${styles.formatButton} ${formatting.bold ? styles.active : ''}`}
         onClick={toggleBold}
