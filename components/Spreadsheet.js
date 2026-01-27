@@ -1,36 +1,39 @@
-import React, { useState } from 'react';
-import Cell from './Cell';
+'use client'
 
-function Spreadsheet({ rows, cols, cells, onUpdateCell }) {
-  const [selectedCell, setSelectedCell] = useState(null);
+import { useState } from 'react'
+import Cell from './Cell'
+import styles from '../styles/Spreadsheet.module.scss'
+
+export default function Spreadsheet({ rows, cols, cells, onUpdateCell }) {
+  const [selectedCell, setSelectedCell] = useState(null)
 
   // Generate column headers (A, B, C, ...)
   const getColumnLabel = (index) => {
-    let label = '';
-    let num = index;
+    let label = ''
+    let num = index
     while (num >= 0) {
-      label = String.fromCharCode(65 + (num % 26)) + label;
-      num = Math.floor(num / 26) - 1;
+      label = String.fromCharCode(65 + (num % 26)) + label
+      num = Math.floor(num / 26) - 1
     }
-    return label;
-  };
+    return label
+  }
 
   const handleCellClick = (row, col) => {
-    setSelectedCell({ row, col });
-  };
+    setSelectedCell({ row, col })
+  }
 
   const handleCellUpdate = (row, col, value, formatting) => {
-    onUpdateCell(row, col, value, formatting);
-  };
+    onUpdateCell(row, col, value, formatting)
+  }
 
   return (
-    <div className="spreadsheet">
-      <table className="spreadsheet-table">
+    <div className={styles.spreadsheet}>
+      <table className={styles.spreadsheetTable}>
         <thead>
           <tr>
-            <th className="row-header"></th>
+            <th className={styles.rowHeader}></th>
             {Array.from({ length: cols }, (_, i) => (
-              <th key={i} className="column-header">
+              <th key={i} className={styles.columnHeader}>
                 {getColumnLabel(i)}
               </th>
             ))}
@@ -39,10 +42,10 @@ function Spreadsheet({ rows, cols, cells, onUpdateCell }) {
         <tbody>
           {Array.from({ length: rows }, (_, rowIndex) => (
             <tr key={rowIndex}>
-              <td className="row-header">{rowIndex + 1}</td>
+              <td className={styles.rowHeader}>{rowIndex + 1}</td>
               {Array.from({ length: cols }, (_, colIndex) => {
-                const cellKey = `${rowIndex}-${colIndex}`;
-                const cellData = cells[cellKey] || { value: '', formatting: {} };
+                const cellKey = `${rowIndex}-${colIndex}`
+                const cellData = cells[cellKey] || { value: '', formatting: {} }
                 return (
                   <Cell
                     key={cellKey}
@@ -54,14 +57,12 @@ function Spreadsheet({ rows, cols, cells, onUpdateCell }) {
                     onClick={handleCellClick}
                     onUpdate={handleCellUpdate}
                   />
-                );
+                )
               })}
             </tr>
           ))}
         </tbody>
       </table>
     </div>
-  );
+  )
 }
-
-export default Spreadsheet;

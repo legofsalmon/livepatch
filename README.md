@@ -1,6 +1,6 @@
 # Live Patch - Real-time Collaborative Spreadsheet
 
-Live Patch is a web-based collaborative spreadsheet application that enables multiple users to work together in real-time. Built with React and Firebase Realtime Database, it provides a seamless experience across desktop and mobile browsers.
+Live Patch is a web-based collaborative spreadsheet application that enables multiple users to work together in real-time. Built with Next.js, React, and Firebase Realtime Database, it provides a seamless experience across desktop and mobile browsers.
 
 ## Features
 
@@ -21,10 +21,11 @@ Live Patch is a web-based collaborative spreadsheet application that enables mul
 
 ## Technology Stack
 
+- **Next.js 14**: React framework with App Router
 - **React 18**: Component-based UI framework
 - **Firebase Realtime Database**: Real-time data synchronization
-- **Webpack**: Module bundler and development server
-- **CSS3**: Responsive styling with mobile-first approach
+- **SCSS Modules**: Scoped styling with CSS preprocessing
+- **JavaScript**: Standard JavaScript (ES6+)
 
 ## Getting Started
 
@@ -48,14 +49,14 @@ npm install
 3. Configure Firebase (Optional - works offline with demo credentials):
    - Create a Firebase project at https://console.firebase.google.com/
    - Enable Realtime Database
-   - Copy `.env.example` to `.env`
-   - Add your Firebase project credentials to `.env`
+   - Copy `.env.example` to `.env.local`
+   - Add your Firebase project credentials to `.env.local`
    
    **Note**: The application works offline with demo credentials for development. For production deployment with real-time collaboration, configure your own Firebase project.
 
 4. Start the development server:
 ```bash
-npm start
+npm run dev
 ```
 
 The application will open in your default browser at `http://localhost:3000`.
@@ -64,9 +65,10 @@ The application will open in your default browser at `http://localhost:3000`.
 
 ```bash
 npm run build
+npm start
 ```
 
-The production-ready files will be in the `dist/` directory.
+The production-ready files will be optimized and served by Next.js.
 
 ## Usage
 
@@ -93,6 +95,7 @@ The codebase is structured to support future extension to iOS and Android:
 - React components can be adapted for React Native
 - Firebase SDK works on all platforms
 - Business logic is separated from UI components
+- Next.js structure allows for API routes for additional backend functionality
 
 ### Potential Features
 - Cell formulas and calculations
@@ -106,18 +109,32 @@ The codebase is structured to support future extension to iOS and Android:
 
 ## Architecture
 
-### Component Structure
+### Project Structure
 ```
-src/
-├── App.js                      # Main application component
+livepatch/
+├── app/
+│   ├── layout.js              # Root layout with metadata
+│   └── page.js                # Main page (home route)
 ├── components/
-│   ├── Spreadsheet.js          # Spreadsheet grid component
-│   ├── Cell.js                 # Individual cell component
-│   ├── FormattingToolbar.js    # Cell formatting controls
-│   └── Toolbar.js              # Main toolbar
-├── firebaseConfig.js           # Firebase configuration
-├── index.js                    # Application entry point
-└── styles.css                  # Global styles
+│   ├── Cell.js                # Individual cell with editing & formatting
+│   ├── FormattingToolbar.js   # Text formatting controls
+│   ├── Spreadsheet.js         # Grid layout and cell management
+│   └── Toolbar.js             # Add row/column buttons
+├── lib/
+│   └── firebaseConfig.js      # Firebase configuration
+├── styles/
+│   ├── globals.scss           # Global styles
+│   ├── App.module.scss        # Main app styles
+│   ├── Cell.module.scss       # Cell-specific styles
+│   ├── FormattingToolbar.module.scss  # Formatting toolbar styles
+│   ├── Spreadsheet.module.scss        # Spreadsheet grid styles
+│   └── Toolbar.module.scss    # Toolbar styles
+├── .env.example               # Environment variable template
+├── .gitignore                 # Git ignore rules
+├── jsconfig.json              # Path aliases configuration
+├── next.config.js             # Next.js configuration
+├── package.json               # Dependencies and scripts
+└── README.md                  # Documentation
 ```
 
 ### Data Structure

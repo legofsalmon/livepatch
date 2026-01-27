@@ -1,0 +1,64 @@
+// Cell Styles
+.spreadsheetCell {
+  border: 1px solid #ddd;
+  padding: 0;
+  height: 35px;
+  min-width: 100px;
+  position: relative;
+  background-color: white;
+  cursor: cell;
+
+  &:hover {
+    background-color: #f8f9fa;
+  }
+
+  &.selected {
+    outline: 2px solid #3498db;
+    outline-offset: -2px;
+    z-index: 5;
+  }
+
+  &.editing {
+    outline: 2px solid #2ecc71;
+    outline-offset: -2px;
+  }
+}
+
+.cellContent {
+  padding: 0.5rem;
+  min-height: 35px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cellInput {
+  width: 100%;
+  height: 100%;
+  border: none;
+  outline: none;
+  padding: 0.5rem;
+  font-family: inherit;
+  font-size: inherit;
+  background-color: transparent;
+}
+
+// Mobile Responsive Styles
+@media (max-width: 768px) {
+  .spreadsheetCell {
+    min-width: 80px;
+    font-size: 0.9rem;
+  }
+
+  .cellContent {
+    padding: 0.3rem;
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .spreadsheetCell {
+    min-width: 70px;
+    height: 30px;
+  }
+}
