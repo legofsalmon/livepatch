@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import RowColumnActionToolbar from './RowColumnActionToolbar'
 import styles from '../styles/Spreadsheet.module.scss'
 
 // Generate default column labels (A, B, C, ...)
@@ -14,10 +15,11 @@ const getDefaultColumnLabel = (index) => {
   return label
 }
 
-export default function ColumnHeader({ col, value, onUpdate }) {
+export default function ColumnHeader({ col, value, onUpdate, isSelected, onSelect, onAddColumn, onRemoveColumn }) {
   const [isEditing, setIsEditing] = useState(false)
   const [localValue, setLocalValue] = useState(value || getDefaultColumnLabel(col))
   const inputRef = useRef(null)
+  const headerRef = useRef(null)
 
   useEffect(() => {
     setLocalValue(value || getDefaultColumnLabel(col))
@@ -30,8 +32,15 @@ export default function ColumnHeader({ col, value, onUpdate }) {
     }
   }, [isEditing])
 
-  const handleClick = () => {
-    setIsEditing(true)
+  const handleClick = (e) => {
+    if (!isEditing) {
+      e.stopPropagation()
+      if (onSelect) {
+        onSelect(col)
+      }
+    } else {
+      setIsEditing(true)
+    }
   }
 
   const handleChange = (e) => {
@@ -59,10 +68,22 @@ export default function ColumnHeader({ col, value, onUpdate }) {
 
   return (
     <th 
-      className={`${styles.columnHeader} ${isEditing ? styles.editingHeader : ''}`}
+      ref={headerRef}
+      className={`${styles.columnHeader} ${isEditing ? styles.editingHeader : ''} ${isSelected ? styles.selectedHeader : ''}`}
       onClick={handleClick}
-      title="Click to edit column header"
+      title={isSelected ? "Column actions available" : "Click to edit column header or access column actions"}
     >
+      {isSelected && !isEditing && (
+        <div className={styles.actionContainer}>
+          <RowColumnActionToolbar
+            type="column"
+            index={col}
+            onAdd={() => onAddColumn && onAddColumn(col)}
+            onRemove={() => onRemoveColumn && onRemoveColumn(col)}
+            position="below"
+          />
+        </div>
+      )}
       {isEditing ? (
         <input
           ref={inputRef}

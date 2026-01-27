@@ -3,8 +3,9 @@
   background-color: white;
   border-radius: 4px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: auto;
+  overflow: visible;
   max-height: calc(100vh - 200px);
+  position: relative;
 
   &::-webkit-scrollbar {
     width: 12px;
@@ -25,10 +26,14 @@
   }
 }
 
+
+
 .spreadsheetTable {
   border-collapse: collapse;
   width: 100%;
   table-layout: fixed;
+  position: relative;
+  z-index: 1;
 }
 
 .rowHeader,
@@ -59,6 +64,12 @@
   &.editingHeader {
     background-color: #d5dbdb;
   }
+
+  &.selectedHeader {
+    background-color: #3498db;
+    color: white;
+    position: relative;
+  }
 }
 
 .headerContent {
@@ -87,6 +98,8 @@
   cursor: pointer;
   user-select: none;
   transition: background-color 0.2s;
+  position: sticky;
+  z-index: 10;
 
   &:hover {
     background-color: #d5dbdb;
@@ -95,7 +108,30 @@
   &.editingHeader {
     background-color: #d5dbdb;
   }
+
+  &.selectedHeader {
+    background-color: #3498db;
+    color: white;
+    z-index: 15;
+  }
 }
+
+.actionContainer {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 1000;
+  pointer-events: none;
+  
+  /* Ensure toolbar is always visible */
+  transform: translateY(2px);
+  
+  > * {
+    pointer-events: auto;
+  }
+}
+
+
 
 // Mobile Responsive Styles
 @media (max-width: 768px) {

@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import RowColumnActionToolbar from './RowColumnActionToolbar'
 import styles from '../styles/Spreadsheet.module.scss'
 
-export default function RowHeader({ row, value, onUpdate }) {
+export default function RowHeader({ row, value, onUpdate, isSelected, onSelect, onAddRow, onRemoveRow }) {
   const [isEditing, setIsEditing] = useState(false)
   const [localValue, setLocalValue] = useState(value || (row + 1).toString())
   const inputRef = useRef(null)
@@ -19,8 +20,15 @@ export default function RowHeader({ row, value, onUpdate }) {
     }
   }, [isEditing])
 
-  const handleClick = () => {
-    setIsEditing(true)
+  const handleClick = (e) => {
+    if (!isEditing) {
+      e.stopPropagation()
+      if (onSelect) {
+        onSelect(row)
+      }
+    } else {
+      setIsEditing(true)
+    }
   }
 
   const handleChange = (e) => {
@@ -48,10 +56,19 @@ export default function RowHeader({ row, value, onUpdate }) {
 
   return (
     <td 
-      className={`${styles.rowHeader} ${isEditing ? styles.editingHeader : ''}`}
+      className={`${styles.rowHeader} ${isEditing ? styles.editingHeader : ''} ${isSelected ? styles.selectedHeader : ''}`}
       onClick={handleClick}
-      title="Click to edit row header"
+      title={isSelected ? "Row actions available" : "Click to edit row header or access row actions"}
     >
+      {isSelected && !isEditing && (
+        <RowColumnActionToolbar
+          type="row"
+          index={row}
+          onAdd={() => onAddRow && onAddRow(row)}
+          onRemove={() => onRemoveRow && onRemoveRow(row)}
+          position="below"
+        />
+      )}
       {isEditing ? (
         <input
           ref={inputRef}

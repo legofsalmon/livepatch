@@ -71,10 +71,98 @@ export default function Home() {
     updateSpreadsheet(newData)
   }
 
+  const insertRow = (afterIndex) => {
+    const currentRows = spreadsheetData.rows || 10
+    const newRows = currentRows + 1
+    const insertAtIndex = afterIndex + 1
+    
+    const newCells = {}
+    const newRowHeaders = {}
+    
+    // Copy and shift existing cell data
+    Object.entries(spreadsheetData.cells || {}).forEach(([cellKey, cellData]) => {
+      const [row, col] = cellKey.split('-').map(Number)
+      
+      if (row < insertAtIndex) {
+        // Cells before insertion point stay the same
+        newCells[cellKey] = cellData
+      } else {
+        // Cells at and after insertion point shift down
+        const newCellKey = `${row + 1}-${col}`
+        newCells[newCellKey] = cellData
+      }
+    })
+    
+    // Copy and shift existing row headers
+    Object.entries(spreadsheetData.rowHeaders || {}).forEach(([rowIndex, headerValue]) => {
+      const row = parseInt(rowIndex)
+      
+      if (row < insertAtIndex) {
+        // Headers before insertion point stay the same
+        newRowHeaders[row] = headerValue
+      } else {
+        // Headers at and after insertion point shift down
+        newRowHeaders[row + 1] = headerValue
+      }
+    })
+    
+    const newData = {
+      ...spreadsheetData,
+      rows: newRows,
+      cells: newCells,
+      rowHeaders: newRowHeaders
+    }
+    updateSpreadsheet(newData)
+  }
+
   const addColumn = () => {
     const newData = {
       ...spreadsheetData,
       cols: (spreadsheetData.cols || 10) + 1
+    }
+    updateSpreadsheet(newData)
+  }
+
+  const insertColumn = (afterIndex) => {
+    const currentCols = spreadsheetData.cols || 10
+    const newCols = currentCols + 1
+    const insertAtIndex = afterIndex + 1
+    
+    const newCells = {}
+    const newColumnHeaders = {}
+    
+    // Copy and shift existing cell data
+    Object.entries(spreadsheetData.cells || {}).forEach(([cellKey, cellData]) => {
+      const [row, col] = cellKey.split('-').map(Number)
+      
+      if (col < insertAtIndex) {
+        // Cells before insertion point stay the same
+        newCells[cellKey] = cellData
+      } else {
+        // Cells at and after insertion point shift right
+        const newCellKey = `${row}-${col + 1}`
+        newCells[newCellKey] = cellData
+      }
+    })
+    
+    // Copy and shift existing column headers
+    Object.entries(spreadsheetData.columnHeaders || {}).forEach(([colIndex, headerValue]) => {
+      const col = parseInt(colIndex)
+      
+      if (col < insertAtIndex) {
+        // Headers before insertion point stay the same
+        newColumnHeaders[col] = headerValue
+      } else {
+        // Headers at and after insertion point shift right
+        newColumnHeaders[col + 1] = headerValue
+      }
+    })
+    
+    const newData = {
+      ...spreadsheetData,
+      cols: newCols,
+      cells: newCells,
+      columnHeaders: newColumnHeaders
     }
     updateSpreadsheet(newData)
   }
@@ -109,6 +197,56 @@ export default function Home() {
     updateSpreadsheet(newData)
   }
 
+  const removeRowAt = (rowIndex) => {
+    const currentRows = spreadsheetData.rows || 10
+    if (currentRows <= 1) return // Prevent removing all rows
+    
+    const newRows = currentRows - 1
+    const newCells = {}
+    const newRowHeaders = {}
+    
+    // Copy and shift existing cell data
+    Object.entries(spreadsheetData.cells || {}).forEach(([cellKey, cellData]) => {
+      const [row, col] = cellKey.split('-').map(Number)
+      
+      if (row < rowIndex) {
+        // Cells before removal point stay the same
+        newCells[cellKey] = cellData
+      } else if (row === rowIndex) {
+        // Skip cells in the row being removed
+        return
+      } else {
+        // Cells after removal point shift up
+        const newCellKey = `${row - 1}-${col}`
+        newCells[newCellKey] = cellData
+      }
+    })
+    
+    // Copy and shift existing row headers
+    Object.entries(spreadsheetData.rowHeaders || {}).forEach(([rowIndex_key, headerValue]) => {
+      const row = parseInt(rowIndex_key)
+      
+      if (row < rowIndex) {
+        // Headers before removal point stay the same
+        newRowHeaders[row] = headerValue
+      } else if (row === rowIndex) {
+        // Skip header being removed
+        return
+      } else {
+        // Headers after removal point shift up
+        newRowHeaders[row - 1] = headerValue
+      }
+    })
+    
+    const newData = {
+      ...spreadsheetData,
+      rows: newRows,
+      cells: newCells,
+      rowHeaders: newRowHeaders
+    }
+    updateSpreadsheet(newData)
+  }
+
   const removeColumn = () => {
     const currentCols = spreadsheetData.cols || 10
     if (currentCols <= 1) return // Prevent removing all columns
@@ -129,6 +267,56 @@ export default function Home() {
     if (newColumnHeaders[newCols]) {
       delete newColumnHeaders[newCols]
     }
+    
+    const newData = {
+      ...spreadsheetData,
+      cols: newCols,
+      cells: newCells,
+      columnHeaders: newColumnHeaders
+    }
+    updateSpreadsheet(newData)
+  }
+
+  const removeColumnAt = (columnIndex) => {
+    const currentCols = spreadsheetData.cols || 10
+    if (currentCols <= 1) return // Prevent removing all columns
+    
+    const newCols = currentCols - 1
+    const newCells = {}
+    const newColumnHeaders = {}
+    
+    // Copy and shift existing cell data
+    Object.entries(spreadsheetData.cells || {}).forEach(([cellKey, cellData]) => {
+      const [row, col] = cellKey.split('-').map(Number)
+      
+      if (col < columnIndex) {
+        // Cells before removal point stay the same
+        newCells[cellKey] = cellData
+      } else if (col === columnIndex) {
+        // Skip cells in the column being removed
+        return
+      } else {
+        // Cells after removal point shift left
+        const newCellKey = `${row}-${col - 1}`
+        newCells[newCellKey] = cellData
+      }
+    })
+    
+    // Copy and shift existing column headers
+    Object.entries(spreadsheetData.columnHeaders || {}).forEach(([colIndex, headerValue]) => {
+      const col = parseInt(colIndex)
+      
+      if (col < columnIndex) {
+        // Headers before removal point stay the same
+        newColumnHeaders[col] = headerValue
+      } else if (col === columnIndex) {
+        // Skip header being removed
+        return
+      } else {
+        // Headers after removal point shift left
+        newColumnHeaders[col - 1] = headerValue
+      }
+    })
     
     const newData = {
       ...spreadsheetData,
@@ -182,12 +370,7 @@ export default function Home() {
           <span>{isConnected ? 'Connected' : 'Offline'}</span>
         </div>
       </header>
-      <Toolbar 
-        onAddRow={addRow} 
-        onAddColumn={addColumn}
-        onRemoveRow={removeRow}
-        onRemoveColumn={removeColumn}
-      />
+      <Toolbar />
       <div className={styles.spreadsheetContainer}>
         <Spreadsheet
           rows={spreadsheetData.rows || 10}
@@ -198,6 +381,14 @@ export default function Home() {
           onUpdateCell={updateCell}
           onUpdateRowHeader={updateRowHeader}
           onUpdateColumnHeader={updateColumnHeader}
+          onAddRow={addRow}
+          onAddColumn={addColumn}
+          onRemoveRow={removeRow}
+          onRemoveColumn={removeColumn}
+          onInsertColumn={insertColumn}
+          onRemoveColumnAt={removeColumnAt}
+          onInsertRow={insertRow}
+          onRemoveRowAt={removeRowAt}
         />
       </div>
     </div>

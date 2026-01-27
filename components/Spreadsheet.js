@@ -6,12 +6,45 @@ import RowHeader from './RowHeader'
 import ColumnHeader from './ColumnHeader'
 import styles from '../styles/Spreadsheet.module.scss'
 
-export default function Spreadsheet({ rows, cols, cells, rowHeaders, columnHeaders, onUpdateCell, onUpdateRowHeader, onUpdateColumnHeader }) {
+export default function Spreadsheet({ 
+  rows, 
+  cols, 
+  cells, 
+  rowHeaders, 
+  columnHeaders, 
+  onUpdateCell, 
+  onUpdateRowHeader, 
+  onUpdateColumnHeader,
+  onAddRow,
+  onAddColumn,
+  onRemoveRow,
+  onRemoveColumn,
+  onInsertColumn,
+  onRemoveColumnAt,
+  onInsertRow,
+  onRemoveRowAt
+}) {
   const [selectedCell, setSelectedCell] = useState(null)
+  const [selectedRowHeader, setSelectedRowHeader] = useState(null)
+  const [selectedColumnHeader, setSelectedColumnHeader] = useState(null)
 
 
   const handleCellClick = (row, col) => {
     setSelectedCell({ row, col })
+    setSelectedRowHeader(null)
+    setSelectedColumnHeader(null)
+  }
+
+  const handleRowHeaderSelect = (row) => {
+    setSelectedRowHeader(row)
+    setSelectedCell(null)
+    setSelectedColumnHeader(null)
+  }
+
+  const handleColumnHeaderSelect = (col) => {
+    setSelectedColumnHeader(col)
+    setSelectedCell(null)
+    setSelectedRowHeader(null)
   }
 
   const handleCellUpdate = (row, col, value, formatting) => {
@@ -30,6 +63,10 @@ export default function Spreadsheet({ rows, cols, cells, rowHeaders, columnHeade
                 col={i}
                 value={columnHeaders[i]}
                 onUpdate={onUpdateColumnHeader}
+                isSelected={selectedColumnHeader === i}
+                onSelect={handleColumnHeaderSelect}
+                onAddColumn={onInsertColumn}
+                onRemoveColumn={onRemoveColumnAt}
               />
             ))}
           </tr>
@@ -41,6 +78,10 @@ export default function Spreadsheet({ rows, cols, cells, rowHeaders, columnHeade
                 row={rowIndex}
                 value={rowHeaders[rowIndex]}
                 onUpdate={onUpdateRowHeader}
+                isSelected={selectedRowHeader === rowIndex}
+                onSelect={handleRowHeaderSelect}
+                onAddRow={onInsertRow}
+                onRemoveRow={onRemoveRowAt}
               />
               {Array.from({ length: cols }, (_, colIndex) => {
                 const cellKey = `${rowIndex}-${colIndex}`
