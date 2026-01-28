@@ -31,10 +31,8 @@ export default function Home() {
   useEffect(() => {
     if (!currentSpreadsheetId) return
 
-    // Load local data and sync queue on startup
+    // Load local data on startup
     const localData = loadFromLocalStorage(currentSpreadsheetId)
-    const localQueue = loadSyncQueue(currentSpreadsheetId)
-    setSyncQueue(localQueue)
 
     // Load local data immediately if available
     if (localData) {
