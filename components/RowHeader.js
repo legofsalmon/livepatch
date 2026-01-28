@@ -31,6 +31,10 @@ export default function RowHeader({ row, value, onUpdate, isSelected, onSelect, 
     }
   }
 
+  const handleRename = () => {
+    setIsEditing(true)
+  }
+
   const handleChange = (e) => {
     setLocalValue(e.target.value)
   }
@@ -66,6 +70,7 @@ export default function RowHeader({ row, value, onUpdate, isSelected, onSelect, 
           index={row}
           onAdd={() => onAddRow && onAddRow(row)}
           onRemove={() => onRemoveRow && onRemoveRow(row)}
+          onRename={handleRename}
           position="below"
         />
       )}

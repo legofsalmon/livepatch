@@ -44,6 +44,13 @@
   }
 }
 
+.syncIndicator {
+  font-size: 0.8rem;
+  color: #f39c12;
+  font-weight: 500;
+  margin-left: 0.3rem;
+}
+
 @keyframes pulse {
   0%, 100% {
     opacity: 1;

@@ -4,20 +4,147 @@
   padding: 1rem 2rem;
   border-bottom: 1px solid #e0e0e0;
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  gap: 2rem;
 }
 
-.toolbarInfo {
-  h2 {
-    margin: 0;
-    color: #2c3e50;
-    font-size: 1.5rem;
+.titleSection {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #f8f9fa;
+  }
+}
+
+.titleInput {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #2c3e50;
+  border: 2px solid #3498db;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  background: white;
+  width: 100%;
+  max-width: 400px;
+  outline: none;
+  font-family: inherit;
+}
+
+.metadataSection {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.stageSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.stageLabel {
+  font-weight: 600;
+  color: #5d6d7e;
+  font-size: 0.9rem;
+}
+
+.stageInput {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  transition: border-color 0.2s;
+  min-width: 120px;
+
+  &:focus {
+    outline: none;
+    border-color: #3498db;
   }
 
-  p {
-    margin: 0;
-    color: #7f8c8d;
-    font-size: 0.9rem;
+  &:hover {
+    border-color: #85929e;
+  }
+
+  &::placeholder {
+    color: #95a5a6;
+    font-style: italic;
+  }
+}
+
+.dateSection {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.dateLabel {
+  font-weight: 600;
+  color: #5d6d7e;
+  font-size: 0.9rem;
+}
+
+.dateInput {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
+  background: white;
+  font-size: 0.9rem;
+  color: #2c3e50;
+  transition: border-color 0.2s;
+  min-width: 140px;
+
+  &:focus {
+    outline: none;
+    border-color: #3498db;
+  }
+
+  &:hover {
+    border-color: #85929e;
+  }
+}
+
+// Mobile Responsive Styles
+@media (max-width: 768px) {
+  .toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .title {
+    font-size: 1.25rem;
+  }
+
+  .titleInput {
+    font-size: 1.25rem;
+    max-width: 100%;
+  }
+
+  .metadataSection {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    width: 100%;
+  }
+
+  .stageSection,
+  .dateSection {
+    width: 100%;
+    justify-content: space-between;
   }
 }
 

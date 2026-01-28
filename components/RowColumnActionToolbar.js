@@ -7,6 +7,7 @@ export default function RowColumnActionToolbar({
   index, 
   onAdd, 
   onRemove,
+  onRename,
   position = 'below' // 'above' or 'below'
 }) {
   const getColumnLabel = (index) => {
@@ -25,6 +26,12 @@ export default function RowColumnActionToolbar({
 
   const handleRemove = () => {
     onRemove(index)
+  }
+
+  const handleRename = () => {
+    if (onRename) {
+      onRename(index)
+    }
   }
 
   const getAddButtonText = () => {
@@ -64,6 +71,13 @@ export default function RowColumnActionToolbar({
         title={getAddTooltip()}
       >
         <span>➕</span> {getAddButtonText()}
+      </button>
+      <button
+        className={`${styles.actionButton} ${styles.renameButton}`}
+        onClick={handleRename}
+        title={`Rename ${type} ${type === 'column' ? getColumnLabel(index) : index + 1}`}
+      >
+        <span>✏️</span> Rename
       </button>
       <button
         className={`${styles.actionButton} ${styles.removeButton}`}

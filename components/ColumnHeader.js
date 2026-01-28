@@ -43,6 +43,10 @@ export default function ColumnHeader({ col, value, onUpdate, isSelected, onSelec
     }
   }
 
+  const handleRename = () => {
+    setIsEditing(true)
+  }
+
   const handleChange = (e) => {
     setLocalValue(e.target.value)
   }
@@ -80,6 +84,7 @@ export default function ColumnHeader({ col, value, onUpdate, isSelected, onSelec
             index={col}
             onAdd={() => onAddColumn && onAddColumn(col)}
             onRemove={() => onRemoveColumn && onRemoveColumn(col)}
+            onRename={handleRename}
             position="below"
           />
         </div>
