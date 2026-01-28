@@ -2,80 +2,38 @@
 
 import { useState, useEffect } from 'react'
 import { initializeApp } from 'firebase/app'
-import { getDatabase, ref, onValue, set } from 'firebase/database'
+import { getDatabase, onValue } from 'firebase/database'
 import { firebaseConfig } from '@/lib/firebaseConfig'
+import { saveToLocalStorage, loadFromLocalStorage } from '@/lib/localStorage'
+import { getSpreadsheetRef, updateSpreadsheetData } from '@/lib/firebaseOperations'
+import { useNotifications } from '@/hooks/useNotifications'
+import { useSyncQueue } from '@/hooks/useSyncQueue'
+import { NOTIFICATION_TYPES, NOTIFICATION_DURATIONS, DEFAULT_SPREADSHEET } from '@/lib/constants'
 import Spreadsheet from '@/components/Spreadsheet'
 import Toolbar from '@/components/Toolbar'
 import Toast from '@/components/Toast'
+import SpreadsheetSelector from '@/components/SpreadsheetSelector'
 import styles from '../styles/App.module.scss'
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig)
 const database = getDatabase(app)
 
-// Local storage utilities
-const STORAGE_KEY = 'livepatch-spreadsheet'
-const SYNC_QUEUE_KEY = 'livepatch-sync-queue'
-
-const saveToLocalStorage = (data) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
-  } catch (error) {
-    console.warn('Failed to save to local storage:', error)
-  }
-}
-
-const loadFromLocalStorage = () => {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY)
-    return data ? JSON.parse(data) : null
-  } catch (error) {
-    console.warn('Failed to load from local storage:', error)
-    return null
-  }
-}
-
-const saveSyncQueue = (queue) => {
-  try {
-    localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue))
-  } catch (error) {
-    console.warn('Failed to save sync queue:', error)
-  }
-}
-
-const loadSyncQueue = () => {
-  try {
-    const queue = localStorage.getItem(SYNC_QUEUE_KEY)
-    return queue ? JSON.parse(queue) : []
-  } catch (error) {
-    console.warn('Failed to load sync queue:', error)
-    return []
-  }
-}
-
 export default function Home() {
+  const [currentSpreadsheetId, setCurrentSpreadsheetId] = useState(null)
   const [spreadsheetData, setSpreadsheetData] = useState({})
   const [isConnected, setIsConnected] = useState(false)
-  const [syncQueue, setSyncQueue] = useState([])
   const [isOnline, setIsOnline] = useState(true)
-  const [notifications, setNotifications] = useState([])
-
-  // Notification helper functions
-  const addNotification = (title, message, type = 'info', duration = 4000, persistent = false) => {
-    const id = Date.now() + Math.random()
-    const notification = { id, title, message, type, duration, persistent }
-    setNotifications(prev => [...prev, notification])
-    return id
-  }
-
-  const removeNotification = (id) => {
-    setNotifications(prev => prev.filter(n => n.id !== id))
-  }
+  
+  const { notifications, addNotification, removeNotification, clearNotificationsByTitle } = useNotifications()
+  const { syncQueue, addToSyncQueue } = useSyncQueue(currentSpreadsheetId, isConnected, isOnline, addNotification, clearNotificationsByTitle)
 
   useEffect(() => {
+    if (!currentSpreadsheetId) return
+
     // Load local data and sync queue on startup
-    const localData = loadFromLocalStorage()
-    const localQueue = loadSyncQueue()
+    const localData = loadFromLocalStorage(currentSpreadsheetId)
+    const localQueue = loadSyncQueue(currentSpreadsheetId)
     setSyncQueue(localQueue)
 
     // Load local data immediately if available
@@ -92,41 +50,27 @@ export default function Home() {
     window.addEventListener('offline', handleOffline)
     setIsOnline(navigator.onLine)
 
-    const spreadsheetRef = ref(database, 'spreadsheet')
+    const spreadsheetRef = getSpreadsheetRef(currentSpreadsheetId)
     
     // Listen for real-time updates
     const unsubscribe = onValue(spreadsheetRef, (snapshot) => {
       const data = snapshot.val()
       if (data) {
         setSpreadsheetData(data)
-        saveToLocalStorage(data)
+        saveToLocalStorage(currentSpreadsheetId, data)
         
-        // Show connection success notification only on first connect
         if (!isConnected) {
-          addNotification('Connected', 'Real-time sync enabled', 'success', 3000)
+          addNotification('Connected', 'Real-time sync enabled', NOTIFICATION_TYPES.SUCCESS, NOTIFICATION_DURATIONS.SHORT)
         }
       } else {
         // Initialize with default data if empty
-        const defaultData = {
-          rows: 10,
-          cols: 10,
-          cells: {},
-          rowHeaders: {},
-          columnHeaders: {},
-          metadata: {
-            title: "Untitled Spreadsheet",
-            stage: "Draft",
-            date: new Date().toISOString().split('T')[0],
-            created: new Date().toISOString(),
-            lastModified: new Date().toISOString()
-          }
-        }
-        set(spreadsheetRef, defaultData)
+        const defaultData = { ...DEFAULT_SPREADSHEET }
+        updateSpreadsheetData(currentSpreadsheetId, defaultData)
         setSpreadsheetData(defaultData)
-        saveToLocalStorage(defaultData)
+        saveToLocalStorage(currentSpreadsheetId, defaultData)
         
         if (!isConnected) {
-          addNotification('Connected', 'New spreadsheet created', 'success', 3000)
+          addNotification('Connected', 'New spreadsheet created', NOTIFICATION_TYPES.SUCCESS, NOTIFICATION_DURATIONS.SHORT)
         }
       }
       setIsConnected(true)
@@ -134,30 +78,16 @@ export default function Home() {
       console.error('Firebase connection error:', error)
       setIsConnected(false)
       
-      // Load fresh local data when Firebase fails
-      const currentLocalData = loadFromLocalStorage()
+      const currentLocalData = loadFromLocalStorage(currentSpreadsheetId)
       if (currentLocalData) {
         console.log('Loading spreadsheet from local storage')
         setSpreadsheetData(currentLocalData)
-        addNotification('Connection Lost', 'Working offline with saved data', 'warning', 4000)
+        addNotification('Connection Lost', 'Working offline with saved data', NOTIFICATION_TYPES.WARNING, NOTIFICATION_DURATIONS.MEDIUM)
       } else {
-        const defaultData = {
-          rows: 10,
-          cols: 10,
-          cells: {},
-          rowHeaders: {},
-          columnHeaders: {},
-          metadata: {
-            title: "Untitled Spreadsheet",
-            stage: "Draft",
-            date: new Date().toISOString().split('T')[0],
-            created: new Date().toISOString(),
-            lastModified: new Date().toISOString()
-          }
-        }
+        const defaultData = { ...DEFAULT_SPREADSHEET }
         setSpreadsheetData(defaultData)
-        saveToLocalStorage(defaultData)
-        addNotification('Connection Lost', 'Starting with new spreadsheet offline', 'warning', 4000)
+        saveToLocalStorage(currentSpreadsheetId, defaultData)
+        addNotification('Connection Lost', 'Starting with new spreadsheet offline', NOTIFICATION_TYPES.WARNING, NOTIFICATION_DURATIONS.MEDIUM)
       }
     })
 
@@ -166,57 +96,27 @@ export default function Home() {
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
     }
-  }, [])
-
-  // Sync queued changes when connection is restored
-  useEffect(() => {
-    if (isConnected && isOnline && syncQueue.length > 0) {
-      console.log('Syncing queued changes:', syncQueue.length)
-      addNotification('Syncing Changes', `Uploading ${syncQueue.length} pending change(s)`, 'info', 0, true)
-      
-      // Process sync queue
-      const processQueue = async () => {
-        try {
-          // Get the latest version from queue (most recent state)
-          const latestChange = syncQueue[syncQueue.length - 1]
-          const spreadsheetRef = ref(database, 'spreadsheet')
-          await set(spreadsheetRef, latestChange.data)
-          
-          // Clear the queue after successful sync
-          setSyncQueue([])
-          saveSyncQueue([])
-          console.log('Sync completed successfully')
-          
-          // Remove syncing notification and show success
-          setNotifications(prev => prev.filter(n => n.title !== 'Syncing Changes'))
-          addNotification('Sync Complete', 'All changes uploaded successfully', 'success', 3000)
-        } catch (error) {
-          console.error('Sync failed:', error)
-          setNotifications(prev => prev.filter(n => n.title !== 'Syncing Changes'))
-          addNotification('Sync Failed', 'Unable to upload changes. Will retry when connection improves.', 'error', 5000)
-        }
-      }
-      
-      processQueue()
-    }
-  }, [isConnected, isOnline, syncQueue])
+  }, [currentSpreadsheetId])
 
   // Handle offline state - load from local storage if available
   useEffect(() => {
+    if (!currentSpreadsheetId) return
+    
     if (!isOnline && !isConnected) {
-      const currentLocalData = loadFromLocalStorage()
+      const currentLocalData = loadFromLocalStorage(currentSpreadsheetId)
       if (currentLocalData && Object.keys(spreadsheetData).length === 0) {
         console.log('Loading spreadsheet from local storage (offline mode)')
         setSpreadsheetData(currentLocalData)
       }
-      addNotification('Offline Mode', 'Changes will sync when connection returns', 'info', 4000)
+      addNotification('Offline Mode', 'Changes will sync when connection returns', NOTIFICATION_TYPES.INFO, NOTIFICATION_DURATIONS.MEDIUM)
     } else if (isOnline && !isConnected) {
-      addNotification('Reconnecting...', 'Attempting to restore connection', 'info', 3000)
+      addNotification('Reconnecting...', 'Attempting to restore connection', NOTIFICATION_TYPES.INFO, NOTIFICATION_DURATIONS.SHORT)
     }
-  }, [isOnline, isConnected])
+  }, [isOnline, isConnected, currentSpreadsheetId, spreadsheetData, addNotification])
 
   const updateSpreadsheet = (newData) => {
-    // Ensure metadata exists and update lastModified timestamp
+    if (!currentSpreadsheetId) return
+    
     const dataWithMetadata = {
       ...newData,
       metadata: {
@@ -225,34 +125,17 @@ export default function Home() {
       }
     }
     
-    // Always update local state and storage
     setSpreadsheetData(dataWithMetadata)
-    saveToLocalStorage(dataWithMetadata)
+    saveToLocalStorage(currentSpreadsheetId, dataWithMetadata)
     
     if (isConnected && isOnline) {
-      // Update Firebase if online and connected
-      const spreadsheetRef = ref(database, 'spreadsheet')
-      set(spreadsheetRef, dataWithMetadata).catch((error) => {
+      updateSpreadsheetData(currentSpreadsheetId, dataWithMetadata).catch((error) => {
         console.error('Error updating Firebase:', error)
-        // Add to sync queue if Firebase update fails
         addToSyncQueue(dataWithMetadata)
       })
     } else {
-      // Add to sync queue if offline
       addToSyncQueue(dataWithMetadata)
     }
-  }
-
-  const addToSyncQueue = (data) => {
-    const queueItem = {
-      timestamp: new Date().toISOString(),
-      data: data
-    }
-    
-    const newQueue = [...syncQueue, queueItem]
-    setSyncQueue(newQueue)
-    saveSyncQueue(newQueue)
-    console.log('Added to sync queue:', queueItem.timestamp)
   }
 
   const addRow = () => {
@@ -589,10 +472,49 @@ export default function Home() {
     updateSpreadsheet(newData)
   }
 
+  const handleSelectSpreadsheet = (spreadsheetId, initialData = null) => {
+    setCurrentSpreadsheetId(spreadsheetId)
+    if (initialData) {
+      setSpreadsheetData(initialData)
+      saveToLocalStorage(spreadsheetId, initialData)
+    }
+  }
+
+  const handleReturnToSelection = () => {
+    setCurrentSpreadsheetId(null)
+    setSpreadsheetData({})
+    setIsConnected(false)
+  }
+
+  // Show spreadsheet selector if no spreadsheet is selected
+  if (!currentSpreadsheetId) {
+    return (
+      <>
+        <SpreadsheetSelector 
+          onSelectSpreadsheet={handleSelectSpreadsheet}
+          addNotification={addNotification}
+        />
+        <Toast 
+          notifications={notifications}
+          onRemove={removeNotification}
+        />
+      </>
+    )
+  }
+
   return (
     <div className={styles.app}>
       <header className={styles.appHeader}>
-        <h1>Live Patch</h1>
+        <div className={styles.headerLeft}>
+          <h1>Live Patch</h1>
+          <button 
+            className={styles.loadButton}
+            onClick={handleReturnToSelection}
+            title="Load different spreadsheet"
+          >
+            📁 Load
+          </button>
+        </div>
         <div className={styles.connectionStatus}>
           <span className={`${styles.statusIndicator} ${isConnected && isOnline ? styles.connected : styles.disconnected}`}></span>
           <span>{isConnected && isOnline ? 'Connected' : !isOnline ? 'Offline' : 'Connecting...'}</span>
