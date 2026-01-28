@@ -6,6 +6,7 @@ import { getDatabase, ref, onValue, set } from 'firebase/database'
 import { firebaseConfig } from '@/lib/firebaseConfig'
 import Spreadsheet from '@/components/Spreadsheet'
 import Toolbar from '@/components/Toolbar'
+import Toast from '@/components/Toast'
 import styles from '../styles/App.module.scss'
 
 // Initialize Firebase
@@ -57,12 +58,31 @@ export default function Home() {
   const [isConnected, setIsConnected] = useState(false)
   const [syncQueue, setSyncQueue] = useState([])
   const [isOnline, setIsOnline] = useState(true)
+  const [notifications, setNotifications] = useState([])
+
+  // Notification helper functions
+  const addNotification = (title, message, type = 'info', duration = 4000, persistent = false) => {
+    const id = Date.now() + Math.random()
+    const notification = { id, title, message, type, duration, persistent }
+    setNotifications(prev => [...prev, notification])
+    return id
+  }
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id))
+  }
 
   useEffect(() => {
     // Load local data and sync queue on startup
     const localData = loadFromLocalStorage()
     const localQueue = loadSyncQueue()
     setSyncQueue(localQueue)
+
+    // Load local data immediately if available
+    if (localData) {
+      console.log('Loading initial data from local storage')
+      setSpreadsheetData(localData)
+    }
 
     // Online/offline detection
     const handleOnline = () => setIsOnline(true)
@@ -80,6 +100,11 @@ export default function Home() {
       if (data) {
         setSpreadsheetData(data)
         saveToLocalStorage(data)
+        
+        // Show connection success notification only on first connect
+        if (!isConnected) {
+          addNotification('Connected', 'Real-time sync enabled', 'success', 3000)
+        }
       } else {
         // Initialize with default data if empty
         const defaultData = {
@@ -99,15 +124,22 @@ export default function Home() {
         set(spreadsheetRef, defaultData)
         setSpreadsheetData(defaultData)
         saveToLocalStorage(defaultData)
+        
+        if (!isConnected) {
+          addNotification('Connected', 'New spreadsheet created', 'success', 3000)
+        }
       }
       setIsConnected(true)
     }, (error) => {
       console.error('Firebase connection error:', error)
       setIsConnected(false)
       
-      // Use local data if available, otherwise use default
-      if (localData) {
-        setSpreadsheetData(localData)
+      // Load fresh local data when Firebase fails
+      const currentLocalData = loadFromLocalStorage()
+      if (currentLocalData) {
+        console.log('Loading spreadsheet from local storage')
+        setSpreadsheetData(currentLocalData)
+        addNotification('Connection Lost', 'Working offline with saved data', 'warning', 4000)
       } else {
         const defaultData = {
           rows: 10,
@@ -125,6 +157,7 @@ export default function Home() {
         }
         setSpreadsheetData(defaultData)
         saveToLocalStorage(defaultData)
+        addNotification('Connection Lost', 'Starting with new spreadsheet offline', 'warning', 4000)
       }
     })
 
@@ -139,6 +172,7 @@ export default function Home() {
   useEffect(() => {
     if (isConnected && isOnline && syncQueue.length > 0) {
       console.log('Syncing queued changes:', syncQueue.length)
+      addNotification('Syncing Changes', `Uploading ${syncQueue.length} pending change(s)`, 'info', 0, true)
       
       // Process sync queue
       const processQueue = async () => {
@@ -152,14 +186,34 @@ export default function Home() {
           setSyncQueue([])
           saveSyncQueue([])
           console.log('Sync completed successfully')
+          
+          // Remove syncing notification and show success
+          setNotifications(prev => prev.filter(n => n.title !== 'Syncing Changes'))
+          addNotification('Sync Complete', 'All changes uploaded successfully', 'success', 3000)
         } catch (error) {
           console.error('Sync failed:', error)
+          setNotifications(prev => prev.filter(n => n.title !== 'Syncing Changes'))
+          addNotification('Sync Failed', 'Unable to upload changes. Will retry when connection improves.', 'error', 5000)
         }
       }
       
       processQueue()
     }
   }, [isConnected, isOnline, syncQueue])
+
+  // Handle offline state - load from local storage if available
+  useEffect(() => {
+    if (!isOnline && !isConnected) {
+      const currentLocalData = loadFromLocalStorage()
+      if (currentLocalData && Object.keys(spreadsheetData).length === 0) {
+        console.log('Loading spreadsheet from local storage (offline mode)')
+        setSpreadsheetData(currentLocalData)
+      }
+      addNotification('Offline Mode', 'Changes will sync when connection returns', 'info', 4000)
+    } else if (isOnline && !isConnected) {
+      addNotification('Reconnecting...', 'Attempting to restore connection', 'info', 3000)
+    }
+  }, [isOnline, isConnected])
 
   const updateSpreadsheet = (newData) => {
     // Ensure metadata exists and update lastModified timestamp
@@ -547,6 +601,10 @@ export default function Home() {
           )}
         </div>
       </header>
+      <Toast 
+        notifications={notifications}
+        onRemove={removeNotification}
+      />
       <Toolbar 
         spreadsheetTitle={spreadsheetData.metadata?.title || "Untitled Spreadsheet"}
         onUpdateTitle={updateSpreadsheetTitle}
