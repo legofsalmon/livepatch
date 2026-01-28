@@ -8,15 +8,20 @@ export default function Toast({ notifications, onRemove }) {
 
   useEffect(() => {
     // Auto-remove notifications after their duration
+    const timers = []
+    
     notifications.forEach(notification => {
       if (notification.duration > 0) {
         const timer = setTimeout(() => {
           handleRemove(notification.id)
         }, notification.duration)
-        
-        return () => clearTimeout(timer)
+        timers.push(timer)
       }
     })
+    
+    return () => {
+      timers.forEach(timer => clearTimeout(timer))
+    }
   }, [notifications])
 
   const handleRemove = (id) => {

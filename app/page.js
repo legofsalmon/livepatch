@@ -59,6 +59,8 @@ export default function Home() {
         saveToLocalStorage(currentSpreadsheetId, data)
         
         if (!isConnected) {
+          clearNotificationsByTitle('Connection Lost')
+          clearNotificationsByTitle('Reconnecting...')
           addNotification('Connected', 'Real-time sync enabled', NOTIFICATION_TYPES.SUCCESS, NOTIFICATION_DURATIONS.SHORT)
         }
       } else {
@@ -69,6 +71,8 @@ export default function Home() {
         saveToLocalStorage(currentSpreadsheetId, defaultData)
         
         if (!isConnected) {
+          clearNotificationsByTitle('Connection Lost')
+          clearNotificationsByTitle('Reconnecting...')
           addNotification('Connected', 'New spreadsheet created', NOTIFICATION_TYPES.SUCCESS, NOTIFICATION_DURATIONS.SHORT)
         }
       }
@@ -107,8 +111,11 @@ export default function Home() {
         console.log('Loading spreadsheet from local storage (offline mode)')
         setSpreadsheetData(currentLocalData)
       }
+      clearNotificationsByTitle('Connected')
+      clearNotificationsByTitle('Reconnecting...')
       addNotification('Offline Mode', 'Changes will sync when connection returns', NOTIFICATION_TYPES.INFO, NOTIFICATION_DURATIONS.MEDIUM)
     } else if (isOnline && !isConnected) {
+      clearNotificationsByTitle('Offline Mode')
       addNotification('Reconnecting...', 'Attempting to restore connection', NOTIFICATION_TYPES.INFO, NOTIFICATION_DURATIONS.SHORT)
     }
   }, [isOnline, isConnected, currentSpreadsheetId, spreadsheetData, addNotification])

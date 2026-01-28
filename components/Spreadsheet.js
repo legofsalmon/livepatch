@@ -96,6 +96,7 @@ export default function Spreadsheet({
                     isSelected={selectedCell?.row === rowIndex && selectedCell?.col === colIndex}
                     onClick={handleCellClick}
                     onUpdate={handleCellUpdate}
+                    columnHeader={columnHeaders[colIndex]}
                   />
                 )
               })}

@@ -90,16 +90,26 @@ export default function ColumnHeader({ col, value, onUpdate, isSelected, onSelec
         </div>
       )}
       {isEditing ? (
-        <input
-          ref={inputRef}
-          type="text"
-          value={localValue}
-          onChange={handleChange}
-          onBlur={handleBlur}
-          onKeyDown={handleKeyDown}
-          className={styles.headerInput}
-          maxLength={20}
-        />
+        <>
+          <input
+            ref={inputRef}
+            type="text"
+            value={localValue}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            className={styles.headerInput}
+            maxLength={20}
+            list="column-options"
+          />
+          <datalist id="column-options">
+            <option value="Input" />
+            <option value="Sub-box" />
+            <option value="Description" />
+            <option value="Mic/DI" />
+            <option value="Stand" />
+          </datalist>
+        </>
       ) : (
         <span className={styles.headerContent}>
           {localValue}
