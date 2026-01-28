@@ -24,6 +24,7 @@ export default function Home() {
   const [spreadsheetData, setSpreadsheetData] = useState({})
   const [isConnected, setIsConnected] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
+  const [showHeaders, setShowHeaders] = useState(true)
   
   const { notifications, addNotification, removeNotification, clearNotificationsByTitle } = useNotifications()
   const { syncQueue, addToSyncQueue } = useSyncQueue(currentSpreadsheetId, isConnected, isOnline, addNotification, clearNotificationsByTitle)
@@ -478,6 +479,10 @@ export default function Home() {
     }
   }
 
+  const toggleHeaders = () => {
+    setShowHeaders(!showHeaders)
+  }
+
   const handleReturnToSelection = () => {
     setCurrentSpreadsheetId(null)
     setSpreadsheetData({})
@@ -502,37 +507,58 @@ export default function Home() {
 
   return (
     <div className={styles.app}>
-      <header className={styles.appHeader}>
-        <div className={styles.headerLeft}>
-          <h1>Live Patch</h1>
-          <button 
-            className={styles.loadButton}
-            onClick={handleReturnToSelection}
-            title="Load different spreadsheet"
-          >
-            📁 Load
-          </button>
-        </div>
-        <div className={styles.connectionStatus}>
-          <span className={`${styles.statusIndicator} ${isConnected && isOnline ? styles.connected : styles.disconnected}`}></span>
-          <span>{isConnected && isOnline ? 'Connected' : !isOnline ? 'Offline' : 'Connecting...'}</span>
-          {syncQueue.length > 0 && (
-            <span className={styles.syncIndicator}>({syncQueue.length} pending)</span>
-          )}
-        </div>
-      </header>
+      {/* Header Toggle Button - Always visible */}
+      <div className={styles.headerToggle}>
+        <button 
+          className={`${styles.toggleButton} ${showHeaders ? styles.active : ''}`}
+          onClick={toggleHeaders}
+          title={showHeaders ? 'Hide headers to save space' : 'Show headers'}
+        >
+          <span className={`${styles.toggleIcon} ${!showHeaders ? styles.rotated : ''}`}>
+            ▲
+          </span>
+        </button>
+      </div>
+      
+      {/* App Header with animation container */}
+      <div className={`${styles.headerContainer} ${showHeaders ? styles.visible : styles.hidden}`}>
+        <header className={styles.appHeader}>
+          <div className={styles.headerLeft}>
+            <h1>Live Patch</h1>
+            <button 
+              className={styles.loadButton}
+              onClick={handleReturnToSelection}
+              title="Load different spreadsheet"
+            >
+              📁 Load
+            </button>
+          </div>
+          <div className={styles.connectionStatus}>
+            <span className={`${styles.statusIndicator} ${isConnected && isOnline ? styles.connected : styles.disconnected}`}></span>
+            <span>{isConnected && isOnline ? 'Connected' : !isOnline ? 'Offline' : 'Connecting...'}</span>
+            {syncQueue.length > 0 && (
+              <span className={styles.syncIndicator}>({syncQueue.length} pending)</span>
+            )}
+          </div>
+        </header>
+      </div>
+      
       <Toast 
         notifications={notifications}
         onRemove={removeNotification}
       />
-      <Toolbar 
-        spreadsheetTitle={spreadsheetData.metadata?.title || "Untitled Spreadsheet"}
-        onUpdateTitle={updateSpreadsheetTitle}
-        stage={spreadsheetData.metadata?.stage || "Draft"}
-        onUpdateStage={updateSpreadsheetStage}
-        date={spreadsheetData.metadata?.date || new Date().toISOString().split('T')[0]}
-        onUpdateDate={updateSpreadsheetDate}
-      />
+      
+      {/* Toolbar with animation container */}
+      <div className={`${styles.toolbarContainer} ${showHeaders ? styles.visible : styles.hidden}`}>
+        <Toolbar 
+          spreadsheetTitle={spreadsheetData.metadata?.title || "Untitled Spreadsheet"}
+          onUpdateTitle={updateSpreadsheetTitle}
+          stage={spreadsheetData.metadata?.stage || "Draft"}
+          onUpdateStage={updateSpreadsheetStage}
+          date={spreadsheetData.metadata?.date || new Date().toISOString().split('T')[0]}
+          onUpdateDate={updateSpreadsheetDate}
+        />
+      </div>
       <div className={styles.spreadsheetContainer}>
         <Spreadsheet
           rows={spreadsheetData.rows || 10}

@@ -1,5 +1,6 @@
 'use client'
 
+import { useRef, useEffect, useState } from 'react'
 import styles from '../styles/RowColumnActions.module.scss'
 
 export default function RowColumnActionToolbar({ 
@@ -10,6 +11,38 @@ export default function RowColumnActionToolbar({
   onRename,
   position = 'below' // 'above' or 'below'
 }) {
+  const [positioning, setPositioning] = useState('left')
+  const [isCompact, setIsCompact] = useState(false)
+  const [isUltraCompact, setIsUltraCompact] = useState(false)
+  const toolbarRef = useRef(null)
+
+  useEffect(() => {
+    if (toolbarRef.current) {
+      const toolbar = toolbarRef.current
+      const rect = toolbar.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      
+      // Check if toolbar extends beyond right edge of viewport
+      if (rect.right > viewportWidth - 20) { // 20px margin
+        setPositioning('right')
+      } else {
+        setPositioning('left')
+      }
+      
+      // Check if we need compact modes
+      const availableSpace = viewportWidth - rect.left - 40 // 40px margin
+      if (availableSpace < 180) {
+        setIsUltraCompact(true)
+        setIsCompact(true)
+      } else if (availableSpace < 600) {
+        setIsUltraCompact(false)
+        setIsCompact(true)
+      } else {
+        setIsUltraCompact(false)
+        setIsCompact(false)
+      }
+    }
+  }, [])
   const getColumnLabel = (index) => {
     let label = ''
     let num = index
@@ -38,10 +71,23 @@ export default function RowColumnActionToolbar({
     if (type === 'column') {
       const currentLabel = getColumnLabel(index)
       const nextLabel = getColumnLabel(index + 1)
-      return `Insert col ${nextLabel}`
+      return isCompact ? `+ ${nextLabel}` : `Insert`
     } else {
-      return `Insert row ${index + 2}`
+      return isCompact ? `+ ${index + 2}` : `Insert row`
     }
+  }
+
+  const getRemoveButtonText = () => {
+    if (type === 'column') {
+      const currentLabel = getColumnLabel(index)
+      return isCompact ? `- ${currentLabel}` : `Remove`
+    } else {
+      return isCompact ? `- ${index + 1}` : `Remove row ${index + 1}`
+    }
+  }
+
+  const getRenameButtonText = () => {
+    return isCompact ? '✎' : 'Rename'
   }
 
   const getAddTooltip = () => {
@@ -64,7 +110,14 @@ export default function RowColumnActionToolbar({
   }
 
   return (
-    <div className={`${styles.actionToolbar} ${position === 'above' ? styles.positionAbove : styles.positionBelow}`}>
+    <div 
+      ref={toolbarRef}
+      className={`${styles.actionToolbar} ${
+        position === 'above' ? styles.positionAbove : styles.positionBelow
+      } ${
+        positioning === 'right' ? styles.positionRight : ''
+      }`}
+    >
       <button
         className={styles.actionButton}
         onClick={handleAdd}

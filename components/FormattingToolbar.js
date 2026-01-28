@@ -1,10 +1,42 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import styles from '../styles/FormattingToolbar.module.scss'
 
 export default function FormattingToolbar({ formatting, onFormatChange, isFirstRow = false }) {
   const [showColorPicker, setShowColorPicker] = useState(false)
+  const [positioning, setPositioning] = useState('left')
+  const [isCompact, setIsCompact] = useState(false)
+  const [isUltraCompact, setIsUltraCompact] = useState(false)
+  const toolbarRef = useRef(null)
+
+  useEffect(() => {
+    if (toolbarRef.current) {
+      const toolbar = toolbarRef.current
+      const rect = toolbar.getBoundingClientRect()
+      const viewportWidth = window.innerWidth
+      
+      // Check if toolbar extends beyond right edge of viewport
+      if (rect.right > viewportWidth - 20) { // 20px margin
+        setPositioning('right')
+      } else {
+        setPositioning('left')
+      }
+      
+      // Check if we need compact modes
+      const availableSpace = viewportWidth - rect.left - 40 // 40px margin
+      if (availableSpace < 160) {
+        setIsUltraCompact(true)
+        setIsCompact(true)
+      } else if (availableSpace < 500) {
+        setIsUltraCompact(false)
+        setIsCompact(true)
+      } else {
+        setIsUltraCompact(false)
+        setIsCompact(false)
+      }
+    }
+  }, [showColorPicker])
 
   const toggleBold = () => {
     onFormatChange('bold', !formatting.bold)
@@ -30,7 +62,18 @@ export default function FormattingToolbar({ formatting, onFormatChange, isFirstR
   ]
 
   return (
-    <div className={`${styles.formattingToolbar} ${isFirstRow ? styles.positionBelow : ''}`}>
+    <div 
+      ref={toolbarRef}
+      className={`${styles.formattingToolbar} ${
+        isFirstRow ? styles.positionBelow : ''
+      } ${
+        positioning === 'right' ? styles.positionRight : ''
+      } ${
+        isCompact ? styles.compact : ''
+      } ${
+        isUltraCompact ? styles.ultraCompact : ''
+      }`}
+    >
       <button
         className={`${styles.formatButton} ${formatting.bold ? styles.active : ''}`}
         onClick={toggleBold}
