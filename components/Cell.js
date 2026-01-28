@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import FormattingToolbar from './FormattingToolbar'
 import styles from '../styles/Cell.module.scss'
 
-export default function Cell({ row, col, value, formatting, isSelected, onClick, onUpdate, columnHeader }) {
+export default function Cell({ row, col, value, formatting, isSelected, onClick, onUpdate, columnHeader, subBoxes }) {
   const [isEditing, setIsEditing] = useState(false)
   const [localValue, setLocalValue] = useState(value)
   const [localFormatting, setLocalFormatting] = useState(formatting || {})
@@ -36,9 +36,12 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
         options: ['Guitar', 'Bass', 'Vocals', 'Drums', 'Keys', 'Synth', 'Saxophone', 'Trumpet', 'Violin']
       }
     } else if (headerLower.includes('sub') || headerLower.includes('box')) {
+      const subBoxNames = subBoxes && subBoxes.length > 0 
+        ? subBoxes.map(subBox => `${subBox.name} (${subBox.stagePosition})`)
+        : ['DI', 'Amp', 'Cabinet', 'Monitor', 'Fold-back', 'Sub', 'Main', 'Side-fill']
       return {
         id: 'sub-box-options',
-        options: ['DI', 'Amp', 'Cabinet', 'Monitor', 'Fold-back', 'Sub', 'Main', 'Side-fill']
+        options: subBoxNames
       }
     } else if (headerLower.includes('description')) {
       return {
@@ -117,6 +120,34 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
     return style
   }
 
+  const getCellBackgroundStyle = () => {
+    const style = {}
+    
+    // Apply sub-box border color if this is a sub-box column cell
+    if (columnHeader && (columnHeader.toLowerCase().includes('sub') || 
+        columnHeader.toLowerCase().includes('box'))) {
+      if (localValue && subBoxes && subBoxes.length > 0) {
+        // Extract sub-box name from value (format: "Sub-box name (position)")
+        const subBoxName = localValue.includes('(') ? 
+          localValue.substring(0, localValue.lastIndexOf('(')).trim() :
+          localValue.trim()
+        
+        // Find matching sub-box
+        const matchingSubBox = subBoxes.find(subBox => subBox.name === subBoxName)
+        if (matchingSubBox && matchingSubBox.color) {
+          style.borderLeft = `8px solid ${matchingSubBox.color}`
+        }
+      }
+    }
+    
+    return style
+  }
+
+  const getContentStyle = () => {
+    const baseStyle = getCellStyle()
+    return baseStyle
+  }
+
   const cellClasses = [
     styles.spreadsheetCell,
     isSelected && styles.selected,
@@ -128,6 +159,7 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
       className={cellClasses}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
+      style={getCellBackgroundStyle()}
     >
       {isSelected && !isEditing && (
         <FormattingToolbar
@@ -158,7 +190,7 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
           )}
         </>
       ) : (
-        <div className={styles.cellContent} style={getCellStyle()}>
+        <div className={styles.cellContent} style={getContentStyle()}>
           {localValue}
         </div>
       )}

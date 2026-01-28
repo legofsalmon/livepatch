@@ -12,6 +12,7 @@ export default function Spreadsheet({
   cells, 
   rowHeaders, 
   columnHeaders, 
+  subBoxes,
   onUpdateCell, 
   onUpdateRowHeader, 
   onUpdateColumnHeader,
@@ -97,6 +98,7 @@ export default function Spreadsheet({
                     onClick={handleCellClick}
                     onUpdate={handleCellUpdate}
                     columnHeader={columnHeaders[colIndex]}
+                    subBoxes={subBoxes}
                   />
                 )
               })}

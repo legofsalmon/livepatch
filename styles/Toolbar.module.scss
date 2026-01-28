@@ -47,6 +47,33 @@
   gap: 2rem;
 }
 
+.actionSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.subBoxButton {
+  background-color: #17a2b8;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background-color: #138496;
+    transform: translateY(-1px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
 .stageSection {
   display: flex;
   align-items: center;

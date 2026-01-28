@@ -9,7 +9,8 @@ export default function Toolbar({
   stage = "Main Stage", 
   onUpdateStage,
   date,
-  onUpdateDate
+  onUpdateDate,
+  onToggleSubBoxManager
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [localTitle, setLocalTitle] = useState(spreadsheetTitle)
@@ -120,6 +121,16 @@ export default function Toolbar({
             value={date || getCurrentDate()}
             onChange={handleDateChange}
           />
+        </div>
+        
+        <div className={styles.actionSection}>
+          <button 
+            className={styles.subBoxButton}
+            onClick={onToggleSubBoxManager}
+            title="Manage Sub-Boxes"
+          >
+            Sub-Boxes
+          </button>
         </div>
       </div>
     </div>

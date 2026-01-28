@@ -13,6 +13,7 @@ import Spreadsheet from '@/components/Spreadsheet'
 import Toolbar from '@/components/Toolbar'
 import Toast from '@/components/Toast'
 import SpreadsheetSelector from '@/components/SpreadsheetSelector'
+import SubBoxManager from '@/components/SubBoxManager'
 import styles from '../styles/App.module.scss'
 
 // Initialize Firebase
@@ -25,6 +26,7 @@ export default function Home() {
   const [isConnected, setIsConnected] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
   const [showHeaders, setShowHeaders] = useState(true)
+  const [showSubBoxManager, setShowSubBoxManager] = useState(false)
   
   const { notifications, addNotification, removeNotification, clearNotificationsByTitle } = useNotifications()
   const { syncQueue, addToSyncQueue } = useSyncQueue(currentSpreadsheetId, isConnected, isOnline, addNotification, clearNotificationsByTitle)
@@ -478,6 +480,22 @@ export default function Home() {
     updateSpreadsheet(newData)
   }
 
+  const updateSubBoxes = (subBoxes) => {
+    const newData = {
+      ...spreadsheetData,
+      subBoxes,
+      metadata: {
+        ...spreadsheetData.metadata,
+        lastModified: new Date().toISOString()
+      }
+    }
+    updateSpreadsheet(newData)
+  }
+
+  const toggleSubBoxManager = () => {
+    setShowSubBoxManager(!showSubBoxManager)
+  }
+
   const handleSelectSpreadsheet = (spreadsheetId, initialData = null) => {
     setCurrentSpreadsheetId(spreadsheetId)
     if (initialData) {
@@ -555,15 +573,23 @@ export default function Home() {
         onRemove={removeNotification}
       />
       
+      <SubBoxManager
+        subBoxes={spreadsheetData.subBoxes || []}
+        onUpdate={updateSubBoxes}
+        isVisible={showSubBoxManager}
+        onClose={() => setShowSubBoxManager(false)}
+      />
+      
       {/* Toolbar with animation container */}
       <div className={`${styles.toolbarContainer} ${showHeaders ? styles.visible : styles.hidden}`}>
-        <Toolbar 
+        <Toolbar
           spreadsheetTitle={spreadsheetData.metadata?.title || "Untitled Spreadsheet"}
           onUpdateTitle={updateSpreadsheetTitle}
           stage={spreadsheetData.metadata?.stage || "Draft"}
           onUpdateStage={updateSpreadsheetStage}
           date={spreadsheetData.metadata?.date || new Date().toISOString().split('T')[0]}
           onUpdateDate={updateSpreadsheetDate}
+          onToggleSubBoxManager={toggleSubBoxManager}
         />
       </div>
       <div className={styles.spreadsheetContainer}>
@@ -573,6 +599,7 @@ export default function Home() {
           cells={spreadsheetData.cells || {}}
           rowHeaders={spreadsheetData.rowHeaders || {}}
           columnHeaders={spreadsheetData.columnHeaders || {}}
+          subBoxes={spreadsheetData.subBoxes || []}
           onUpdateCell={updateCell}
           onUpdateRowHeader={updateRowHeader}
           onUpdateColumnHeader={updateColumnHeader}
