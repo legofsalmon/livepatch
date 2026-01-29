@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { initializeApp } from 'firebase/app'
 import { getDatabase, onValue } from 'firebase/database'
 import { firebaseConfig } from '@/lib/firebaseConfig'
@@ -21,6 +21,25 @@ import styles from '../styles/App.module.scss'
 const app = initializeApp(firebaseConfig)
 const database = getDatabase(app)
 
+// Utility function to generate columns and headers based on lineup
+const generateColumnsFromLineup = (lineup) => {
+  const baseColumns = ['Sub-box', 'Input', 'Description', 'Mic/DI', 'Stand']
+  const columnHeaders = {}
+  let colIndex = 0
+  
+  lineup.forEach((artist, artistIndex) => {
+    baseColumns.forEach((columnName, baseIndex) => {
+      columnHeaders[colIndex] = columnName
+      colIndex++
+    })
+  })
+  
+  return {
+    cols: colIndex,
+    columnHeaders
+  }
+}
+
 export default function Home() {
   const [currentSpreadsheetId, setCurrentSpreadsheetId] = useState(null)
   const [spreadsheetData, setSpreadsheetData] = useState({})
@@ -30,8 +49,42 @@ export default function Home() {
   const [showSubBoxManager, setShowSubBoxManager] = useState(false)
   const [showLineupManager, setShowLineupManager] = useState(false)
   
+  // Ref to track if column initialization has been done
+  const hasInitializedColumns = useRef(false)
+  
   const { notifications, addNotification, removeNotification, clearNotificationsByTitle } = useNotifications()
   const { syncQueue, addToSyncQueue } = useSyncQueue(currentSpreadsheetId, isConnected, isOnline, addNotification, clearNotificationsByTitle)
+
+  // Initialize column structure when spreadsheet data loads
+  useEffect(() => {
+    if (spreadsheetData.lineup && spreadsheetData.lineup.length > 0 && !hasInitializedColumns.current) {
+      const { cols, columnHeaders } = generateColumnsFromLineup(spreadsheetData.lineup)
+      
+      // Only update if the structure has changed
+      if (spreadsheetData.cols !== cols || 
+          JSON.stringify(spreadsheetData.columnHeaders) !== JSON.stringify(columnHeaders)) {
+        
+        // Preserve existing cell data that fits within the new structure
+        const newCells = {}
+        Object.entries(spreadsheetData.cells || {}).forEach(([cellKey, cellData]) => {
+          const [row, col] = cellKey.split('-').map(Number)
+          if (col < cols) {
+            newCells[cellKey] = cellData
+          }
+        })
+        
+        const newData = {
+          ...spreadsheetData,
+          cols,
+          columnHeaders,
+          cells: newCells
+        }
+        setSpreadsheetData(newData)
+        saveToLocalStorage(currentSpreadsheetId, newData)
+        hasInitializedColumns.current = true
+      }
+    }
+  }, [spreadsheetData.lineup, currentSpreadsheetId])
 
   useEffect(() => {
     if (!currentSpreadsheetId) return
@@ -65,6 +118,7 @@ export default function Home() {
         if (!isConnected) {
           clearNotificationsByTitle('Connection Lost')
           clearNotificationsByTitle('Reconnecting...')
+          clearNotificationsByTitle('Offline Mode')
           addNotification('Connected', 'Real-time sync enabled', NOTIFICATION_TYPES.SUCCESS, NOTIFICATION_DURATIONS.SHORT)
         }
       } else {
@@ -77,6 +131,7 @@ export default function Home() {
         if (!isConnected) {
           clearNotificationsByTitle('Connection Lost')
           clearNotificationsByTitle('Reconnecting...')
+          clearNotificationsByTitle('Offline Mode')
           addNotification('Connected', 'New spreadsheet created', NOTIFICATION_TYPES.SUCCESS, NOTIFICATION_DURATIONS.SHORT)
         }
       }
@@ -117,12 +172,14 @@ export default function Home() {
       }
       clearNotificationsByTitle('Connected')
       clearNotificationsByTitle('Reconnecting...')
+      clearNotificationsByTitle('Sync Complete')
       addNotification('Offline Mode', 'Changes will sync when connection returns', NOTIFICATION_TYPES.INFO, NOTIFICATION_DURATIONS.MEDIUM)
     } else if (isOnline && !isConnected) {
       clearNotificationsByTitle('Offline Mode')
+      clearNotificationsByTitle('Connected')
       addNotification('Reconnecting...', 'Attempting to restore connection', NOTIFICATION_TYPES.INFO, NOTIFICATION_DURATIONS.SHORT)
     }
-  }, [isOnline, isConnected, currentSpreadsheetId, spreadsheetData, addNotification])
+  }, [isOnline, isConnected, currentSpreadsheetId, spreadsheetData])
 
   const updateSpreadsheet = (newData) => {
     if (!currentSpreadsheetId) return
@@ -499,9 +556,58 @@ export default function Home() {
   }
 
   const updateLineup = (lineup) => {
+    // Generate new column structure based on lineup
+    const { cols, columnHeaders } = generateColumnsFromLineup(lineup)
+    
+    // Preserve existing cell data that fits within the new structure
+    const newCells = {}
+    Object.entries(spreadsheetData.cells || {}).forEach(([cellKey, cellData]) => {
+      const [row, col] = cellKey.split('-').map(Number)
+      if (col < cols) {
+        newCells[cellKey] = cellData
+      }
+    })
+    
     const newData = {
       ...spreadsheetData,
       lineup,
+      cols,
+      columnHeaders,
+      cells: newCells,
+      metadata: {
+        ...spreadsheetData.metadata,
+        lastModified: new Date().toISOString()
+      }
+    }
+    updateSpreadsheet(newData)
+  }
+
+  const copyFromLeftArtist = (targetArtistIndex) => {
+    if (targetArtistIndex <= 0) return // Can't copy if it's the first artist
+    
+    const sourceStartCol = (targetArtistIndex - 1) * 5
+    const targetStartCol = targetArtistIndex * 5
+    const rows = spreadsheetData.rows || 10
+    
+    const newCells = { ...spreadsheetData.cells }
+    
+    // Copy all cells from source artist section to target artist section
+    for (let row = 0; row < rows; row++) {
+      for (let colOffset = 0; colOffset < 5; colOffset++) {
+        const sourceCol = sourceStartCol + colOffset
+        const targetCol = targetStartCol + colOffset
+        const sourceCellKey = `${row}-${sourceCol}`
+        const targetCellKey = `${row}-${targetCol}`
+        
+        if (newCells[sourceCellKey]) {
+          newCells[targetCellKey] = { ...newCells[sourceCellKey] }
+        }
+      }
+    }
+    
+    const newData = {
+      ...spreadsheetData,
+      cells: newCells,
       metadata: {
         ...spreadsheetData.metadata,
         lastModified: new Date().toISOString()
@@ -687,8 +793,7 @@ export default function Home() {
           cells={spreadsheetData.cells || {}}
           rowHeaders={spreadsheetData.rowHeaders || {}}
           columnHeaders={spreadsheetData.columnHeaders || {}}
-          subBoxes={spreadsheetData.subBoxes || []}
-          onUpdateCell={updateCell}
+          subBoxes={spreadsheetData.subBoxes || []}          lineup={spreadsheetData.lineup || []}          onUpdateCell={updateCell}
           onUpdateRowHeader={updateRowHeader}
           onUpdateColumnHeader={updateColumnHeader}
           onAddRow={addRow}
@@ -699,6 +804,7 @@ export default function Home() {
           onRemoveColumnAt={removeColumnAt}
           onInsertRow={insertRow}
           onRemoveRowAt={removeRowAt}
+          onCopyFromLeft={copyFromLeftArtist}
         />
       </div>
     </div>

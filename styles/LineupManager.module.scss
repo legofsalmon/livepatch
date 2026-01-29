@@ -136,6 +136,16 @@
   &:hover {
     background-color: #c82333;
   }
+  
+  &.disabled {
+    background-color: #ccc;
+    color: #999;
+    cursor: not-allowed;
+    
+    &:hover {
+      background-color: #ccc;
+    }
+  }
 }
 
 .artistControls {

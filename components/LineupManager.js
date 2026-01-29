@@ -4,12 +4,39 @@ import { useState, useEffect } from 'react'
 import styles from '../styles/LineupManager.module.scss'
 
 export default function LineupManager({ lineup = [], onUpdate, isVisible, onClose }) {
-  const [localLineup, setLocalLineup] = useState(lineup)
+  const [localLineup, setLocalLineup] = useState(() => {
+    // Ensure at least one artist by default
+    if (lineup.length === 0) {
+      return [{
+        id: Date.now(),
+        name: 'Artist 1',
+        startTime: '19:00',
+        endTime: '20:00',
+        notes: '',
+        files: []
+      }]
+    }
+    return lineup
+  })
 
   // Sync local state with prop changes (for loading from Firebase/localStorage)
   useEffect(() => {
-    setLocalLineup(lineup)
-  }, [lineup])
+    if (lineup.length === 0) {
+      // If incoming lineup is empty, ensure we have at least one artist
+      const defaultArtist = {
+        id: Date.now(),
+        name: 'Artist 1',
+        startTime: '19:00',
+        endTime: '20:00',
+        notes: '',
+        files: []
+      }
+      setLocalLineup([defaultArtist])
+      onUpdate([defaultArtist])
+    } else {
+      setLocalLineup(lineup)
+    }
+  }, [lineup, onUpdate])
 
   const handleAddArtist = () => {
     const newArtist = {
@@ -26,6 +53,10 @@ export default function LineupManager({ lineup = [], onUpdate, isVisible, onClos
   }
 
   const handleRemoveArtist = (id) => {
+    // Prevent removing if only one artist remains (minimum of 1)
+    if (localLineup.length <= 1) {
+      return
+    }
     const updated = localLineup.filter(artist => artist.id !== id)
     setLocalLineup(updated)
     onUpdate(updated)
@@ -105,9 +136,10 @@ export default function LineupManager({ lineup = [], onUpdate, isVisible, onClos
                     placeholder="Artist name"
                   />
                   <button
-                    className={styles.removeButton}
+                    className={`${styles.removeButton} ${localLineup.length <= 1 ? styles.disabled : ''}`}
                     onClick={() => handleRemoveArtist(artist.id)}
-                    title="Remove artist"
+                    title={localLineup.length <= 1 ? "Cannot remove - minimum 1 artist required" : "Remove artist"}
+                    disabled={localLineup.length <= 1}
                   >
                     ×
                   </button>

@@ -13,6 +13,7 @@ export default function Spreadsheet({
   rowHeaders, 
   columnHeaders, 
   subBoxes,
+  lineup = [],
   onUpdateCell, 
   onUpdateRowHeader, 
   onUpdateColumnHeader,
@@ -23,7 +24,8 @@ export default function Spreadsheet({
   onInsertColumn,
   onRemoveColumnAt,
   onInsertRow,
-  onRemoveRowAt
+  onRemoveRowAt,
+  onCopyFromLeft
 }) {
   const [selectedCell, setSelectedCell] = useState(null)
   const [selectedRowHeader, setSelectedRowHeader] = useState(null)
@@ -88,12 +90,27 @@ export default function Spreadsheet({
         <thead>
           <tr>
             <th className={styles.rowHeader}></th>
-            <th 
-              className={styles.groupedHeader}
-              colSpan={5}
-            >
-              Live Patch Configuration
-            </th>
+            {lineup.map((artist, index) => (
+              <th 
+                key={artist.id}
+                className={styles.groupedHeader}
+                colSpan={5}
+              >
+                <div className={styles.artistHeaderContent}>
+                  <span className={styles.artistName}>{artist.name}</span>
+                  <div className={styles.artistToolbar}>
+                    <button
+                      className={`${styles.copyButton} ${index === 0 ? styles.disabled : ''}`}
+                      onClick={() => onCopyFromLeft && onCopyFromLeft(index)}
+                      disabled={index === 0}
+                      title={index === 0 ? "No artist to copy from" : `Copy from ${lineup[index - 1]?.name}`}
+                    >
+                      ← Copy
+                    </button>
+                  </div>
+                </div>
+              </th>
+            ))}
           </tr>
           <tr>
             <th className={styles.rowHeader}></th>
