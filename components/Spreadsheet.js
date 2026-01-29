@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import Cell from './Cell'
 import RowHeader from './RowHeader'
 import ColumnHeader from './ColumnHeader'
@@ -30,10 +30,9 @@ export default function Spreadsheet({
   const [selectedCell, setSelectedCell] = useState(null)
   const [selectedRowHeader, setSelectedRowHeader] = useState(null)
   const [selectedColumnHeader, setSelectedColumnHeader] = useState(null)
-  const [columnWidths, setColumnWidths] = useState({})
 
-  // Calculate minimum column widths based on content
-  useEffect(() => {
+  // Calculate minimum column widths based on content - memoized for performance
+  const columnWidths = useMemo(() => {
     const newColumnWidths = {}
     
     for (let col = 0; col < cols; col++) {
@@ -58,7 +57,7 @@ export default function Spreadsheet({
       newColumnWidths[col] = Math.min(maxWidth, 300)
     }
     
-    setColumnWidths(newColumnWidths)
+    return newColumnWidths
   }, [cols, rows, cells, columnHeaders])
 
 
@@ -80,8 +79,8 @@ export default function Spreadsheet({
     setSelectedRowHeader(null)
   }
 
-  const handleCellUpdate = (row, col, value, formatting) => {
-    onUpdateCell(row, col, value, formatting)
+  const handleCellUpdate = (row, col, value) => {
+    onUpdateCell(row, col, value)
   }
 
   return (
@@ -143,15 +142,14 @@ export default function Spreadsheet({
               />
               {Array.from({ length: cols }, (_, colIndex) => {
                 const cellKey = `${rowIndex}-${colIndex}`
-                const cellData = cells[cellKey] || { value: '', formatting: {} }
+                const cellData = cells[cellKey] || { value: '' }
                 return (
                   <Cell
-                    key={cellKey}
+                    key={colIndex}
                     row={rowIndex}
                     col={colIndex}
                     value={cellData.value}
-                    formatting={cellData.formatting}
-                    isSelected={selectedCell?.row === rowIndex && selectedCell?.col === colIndex}
+                    isSelected={selectedCell && selectedCell.row === rowIndex && selectedCell.col === colIndex}
                     onClick={handleCellClick}
                     onUpdate={handleCellUpdate}
                     columnHeader={columnHeaders[colIndex]}

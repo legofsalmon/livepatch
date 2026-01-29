@@ -1,22 +1,16 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
-import FormattingToolbar from './FormattingToolbar'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import styles from '../styles/Cell.module.scss'
 
-export default function Cell({ row, col, value, formatting, isSelected, onClick, onUpdate, columnHeader, subBoxes, style }) {
+export default function Cell({ row, col, value, isSelected, onClick, onUpdate, columnHeader, subBoxes, style }) {
   const [isEditing, setIsEditing] = useState(false)
   const [localValue, setLocalValue] = useState(value)
-  const [localFormatting, setLocalFormatting] = useState(formatting || {})
   const inputRef = useRef(null)
 
   useEffect(() => {
     setLocalValue(value)
   }, [value])
-
-  useEffect(() => {
-    setLocalFormatting(formatting || {})
-  }, [formatting])
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -25,7 +19,7 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
     }
   }, [isEditing])
 
-  const getDatalistInfo = () => {
+  const datalistInfo = useMemo(() => {
     if (!columnHeader) return null
     
     const headerLower = columnHeader.toLowerCase()
@@ -61,7 +55,7 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
     }
     
     return null
-  }
+  }, [columnHeader, subBoxes])
 
   const handleClick = () => {
     onClick(row, col)
@@ -78,46 +72,18 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
   const handleBlur = () => {
     setIsEditing(false)
     if (localValue !== value) {
-      onUpdate(row, col, localValue, localFormatting)
+      onUpdate(row, col, localValue)
     }
   }
 
   const handleKeyDown = (e) => {
     if (e.key === 'Enter') {
       setIsEditing(false)
-      onUpdate(row, col, localValue, localFormatting)
+      onUpdate(row, col, localValue)
     } else if (e.key === 'Escape') {
       setLocalValue(value)
       setIsEditing(false)
     }
-  }
-
-  const handleFormatChange = (formatType, formatValue) => {
-    const newFormatting = {
-      ...localFormatting,
-      [formatType]: formatValue
-    }
-    setLocalFormatting(newFormatting)
-    onUpdate(row, col, localValue, newFormatting)
-  }
-
-  const getCellStyle = () => {
-    const style = {}
-    
-    if (localFormatting.bold) {
-      style.fontWeight = 'bold'
-    }
-    if (localFormatting.italic) {
-      style.fontStyle = 'italic'
-    }
-    if (localFormatting.underline) {
-      style.textDecoration = 'underline'
-    }
-    if (localFormatting.color) {
-      style.color = localFormatting.color
-    }
-    
-    return style
   }
 
   const getCellBackgroundStyle = () => {
@@ -143,11 +109,6 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
     return style
   }
 
-  const getContentStyle = () => {
-    const baseStyle = getCellStyle()
-    return baseStyle
-  }
-
   const cellClasses = [
     styles.spreadsheetCell,
     isSelected && styles.selected,
@@ -161,13 +122,6 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
       onDoubleClick={handleDoubleClick}
       style={{...getCellBackgroundStyle(), ...style}}
     >
-      {isSelected && !isEditing && (
-        <FormattingToolbar
-          formatting={localFormatting}
-          onFormatChange={handleFormatChange}
-          isFirstRow={row === 0}
-        />
-      )}
       {isEditing ? (
         <>
           <input
@@ -178,19 +132,18 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
             className={styles.cellInput}
-            style={getCellStyle()}
-            list={getDatalistInfo()?.id}
+            list={datalistInfo?.id}
           />
-          {getDatalistInfo() && (
-            <datalist id={getDatalistInfo().id}>
-              {getDatalistInfo().options.map((option, index) => (
+          {datalistInfo && (
+            <datalist id={datalistInfo.id}>
+              {datalistInfo.options.map((option, index) => (
                 <option key={index} value={option} />
               ))}
             </datalist>
           )}
         </>
       ) : (
-        <div className={styles.cellContent} style={getContentStyle()}>
+        <div className={styles.cellContent}>
           {localValue}
         </div>
       )}

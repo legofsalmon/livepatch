@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { saveSyncQueue, loadSyncQueue } from '@/lib/localStorage'
 import { updateSpreadsheetData } from '@/lib/firebaseOperations'
 import { NOTIFICATION_TYPES, NOTIFICATION_DURATIONS } from '@/lib/constants'
@@ -58,7 +58,7 @@ export const useSyncQueue = (spreadsheetId, isConnected, isOnline, addNotificati
     }
   }, [isConnected, isOnline, syncQueue, spreadsheetId, addNotification, clearNotificationsByTitle])
 
-  const addToSyncQueue = (data) => {
+  const addToSyncQueue = useCallback((data) => {
     if (!spreadsheetId) return
     
     const queueItem = {
@@ -66,11 +66,13 @@ export const useSyncQueue = (spreadsheetId, isConnected, isOnline, addNotificati
       data: data
     }
     
-    const newQueue = [...syncQueue, queueItem]
+    // Only keep the latest change instead of accumulating all changes
+    // This prevents excessive queue buildup and reduces sync time
+    const newQueue = [queueItem] // Replace entire queue with latest change
     setSyncQueue(newQueue)
     saveSyncQueue(spreadsheetId, newQueue)
-    console.log('Added to sync queue:', queueItem.timestamp)
-  }
+    console.log('Updated sync queue with latest change:', queueItem.timestamp)
+  }, [spreadsheetId])
 
   return {
     syncQueue,

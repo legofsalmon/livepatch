@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { initializeApp } from 'firebase/app'
 import { getDatabase, onValue } from 'firebase/database'
 import { firebaseConfig } from '@/lib/firebaseConfig'
-import { saveToLocalStorage, loadFromLocalStorage } from '@/lib/localStorage'
+import { saveToLocalStorage, loadFromLocalStorage, cleanupOldEntries } from '@/lib/localStorage'
 import { getSpreadsheetRef, updateSpreadsheetData } from '@/lib/firebaseOperations'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useSyncQueue } from '@/hooks/useSyncQueue'
@@ -17,11 +17,20 @@ import SubBoxManager from '@/components/SubBoxManager'
 import LineupManager from '@/components/LineupManager'
 import styles from '../styles/App.module.scss'
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig)
-const database = getDatabase(app)
+// Initialize Firebase outside component to prevent re-initialization
+let firebaseApp, database
+try {
+  if (typeof window !== 'undefined') {
+    const { initializeApp } = require('firebase/app')
+    const { getDatabase } = require('firebase/database')
+    firebaseApp = initializeApp(firebaseConfig)
+    database = getDatabase(firebaseApp)
+  }
+} catch (error) {
+  console.error('Firebase initialization error:', error)
+}
 
-// Utility function to generate columns and headers based on lineup
+// Memoize utility function to prevent recreation on every render
 const generateColumnsFromLineup = (lineup) => {
   const baseColumns = ['Sub-box', 'Input', 'Description', 'Mic/DI', 'Stand']
   const columnHeaders = {}
@@ -54,6 +63,11 @@ export default function Home() {
   
   const { notifications, addNotification, removeNotification, clearNotificationsByTitle } = useNotifications()
   const { syncQueue, addToSyncQueue } = useSyncQueue(currentSpreadsheetId, isConnected, isOnline, addNotification, clearNotificationsByTitle)
+
+  // Cleanup old localStorage entries on app start
+  useEffect(() => {
+    cleanupOldEntries()
+  }, [])
 
   // Initialize column structure when spreadsheet data loads
   useEffect(() => {
@@ -181,29 +195,46 @@ export default function Home() {
     }
   }, [isOnline, isConnected, currentSpreadsheetId, spreadsheetData])
 
-  const updateSpreadsheet = (newData) => {
-    if (!currentSpreadsheetId) return
-    
-    const dataWithMetadata = {
-      ...newData,
-      metadata: {
-        ...newData.metadata,
-        lastModified: new Date().toISOString()
-      }
+  // Memoize expensive operations
+  const memoizedColumnGeneration = useMemo(() => {
+    if (spreadsheetData.lineup?.length > 0) {
+      return generateColumnsFromLineup(spreadsheetData.lineup)
     }
-    
-    setSpreadsheetData(dataWithMetadata)
-    saveToLocalStorage(currentSpreadsheetId, dataWithMetadata)
-    
-    if (isConnected && isOnline) {
-      updateSpreadsheetData(currentSpreadsheetId, dataWithMetadata).catch((error) => {
-        console.error('Error updating Firebase:', error)
-        addToSyncQueue(dataWithMetadata)
-      })
-    } else {
-      addToSyncQueue(dataWithMetadata)
+    return { cols: 5, columnHeaders: DEFAULT_SPREADSHEET.columnHeaders }
+  }, [spreadsheetData.lineup])
+
+  // Debounced update function to prevent excessive Firebase writes
+  const updateSpreadsheetDebounced = useMemo(() => {
+    let timeoutId
+    return (newData) => {
+      if (!currentSpreadsheetId) return
+      
+      clearTimeout(timeoutId)
+      timeoutId = setTimeout(() => {
+        const dataWithMetadata = {
+          ...newData,
+          metadata: {
+            ...newData.metadata,
+            lastModified: new Date().toISOString()
+          }
+        }
+        
+        setSpreadsheetData(dataWithMetadata)
+        saveToLocalStorage(currentSpreadsheetId, dataWithMetadata)
+        
+        if (isConnected && isOnline) {
+          updateSpreadsheetData(currentSpreadsheetId, dataWithMetadata).catch((error) => {
+            console.error('Error updating Firebase:', error)
+            addToSyncQueue(dataWithMetadata)
+          })
+        } else {
+          addToSyncQueue(dataWithMetadata)
+        }
+      }, 300) // 300ms debounce
     }
-  }
+  }, [currentSpreadsheetId, isConnected, isOnline, addToSyncQueue])
+
+  const updateSpreadsheet = updateSpreadsheetDebounced
 
   const addRow = () => {
     const newData = {
@@ -469,13 +500,13 @@ export default function Home() {
     updateSpreadsheet(newData)
   }
 
-  const updateCell = (row, col, value, formatting) => {
+  const updateCell = (row, col, value) => {
     const cellKey = `${row}-${col}`
     const newData = {
       ...spreadsheetData,
       cells: {
         ...spreadsheetData.cells,
-        [cellKey]: { value, formatting }
+        [cellKey]: { value }
       }
     }
     updateSpreadsheet(newData)
