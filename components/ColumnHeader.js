@@ -15,7 +15,7 @@ const getDefaultColumnLabel = (index) => {
   return label
 }
 
-export default function ColumnHeader({ col, value, onUpdate, isSelected, onSelect, onAddColumn, onRemoveColumn }) {
+export default function ColumnHeader({ col, value, onUpdate, isSelected, onSelect, onAddColumn, onRemoveColumn, style }) {
   const [isEditing, setIsEditing] = useState(false)
   const [localValue, setLocalValue] = useState(value || getDefaultColumnLabel(col))
   const inputRef = useRef(null)
@@ -76,6 +76,7 @@ export default function ColumnHeader({ col, value, onUpdate, isSelected, onSelec
       className={`${styles.columnHeader} ${isEditing ? styles.editingHeader : ''} ${isSelected ? styles.selectedHeader : ''}`}
       onClick={handleClick}
       title={isSelected ? "Column actions available" : "Click to edit column header or access column actions"}
+      style={style}
     >
       {isSelected && !isEditing && (
         <div className={styles.actionContainer}>

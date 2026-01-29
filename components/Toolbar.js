@@ -10,7 +10,9 @@ export default function Toolbar({
   onUpdateStage,
   date,
   onUpdateDate,
-  onToggleSubBoxManager
+  onToggleSubBoxManager,
+  onToggleLineupManager,
+  onExportCSV
 }) {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [localTitle, setLocalTitle] = useState(spreadsheetTitle)
@@ -130,6 +132,20 @@ export default function Toolbar({
             title="Manage Sub-Boxes"
           >
             Sub-Boxes
+          </button>
+          <button 
+            className={styles.lineupButton}
+            onClick={onToggleLineupManager}
+            title="Manage Artist Lineup"
+          >
+            Lineup
+          </button>
+          <button 
+            className={styles.exportButton}
+            onClick={onExportCSV}
+            title="Download as CSV"
+          >
+            Export CSV
           </button>
         </div>
       </div>

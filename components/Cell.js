@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import FormattingToolbar from './FormattingToolbar'
 import styles from '../styles/Cell.module.scss'
 
-export default function Cell({ row, col, value, formatting, isSelected, onClick, onUpdate, columnHeader, subBoxes }) {
+export default function Cell({ row, col, value, formatting, isSelected, onClick, onUpdate, columnHeader, subBoxes, style }) {
   const [isEditing, setIsEditing] = useState(false)
   const [localValue, setLocalValue] = useState(value)
   const [localFormatting, setLocalFormatting] = useState(formatting || {})
@@ -159,7 +159,7 @@ export default function Cell({ row, col, value, formatting, isSelected, onClick,
       className={cellClasses}
       onClick={handleClick}
       onDoubleClick={handleDoubleClick}
-      style={getCellBackgroundStyle()}
+      style={{...getCellBackgroundStyle(), ...style}}
     >
       {isSelected && !isEditing && (
         <FormattingToolbar

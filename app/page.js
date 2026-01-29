@@ -14,6 +14,7 @@ import Toolbar from '@/components/Toolbar'
 import Toast from '@/components/Toast'
 import SpreadsheetSelector from '@/components/SpreadsheetSelector'
 import SubBoxManager from '@/components/SubBoxManager'
+import LineupManager from '@/components/LineupManager'
 import styles from '../styles/App.module.scss'
 
 // Initialize Firebase
@@ -27,6 +28,7 @@ export default function Home() {
   const [isOnline, setIsOnline] = useState(true)
   const [showHeaders, setShowHeaders] = useState(true)
   const [showSubBoxManager, setShowSubBoxManager] = useState(false)
+  const [showLineupManager, setShowLineupManager] = useState(false)
   
   const { notifications, addNotification, removeNotification, clearNotificationsByTitle } = useNotifications()
   const { syncQueue, addToSyncQueue } = useSyncQueue(currentSpreadsheetId, isConnected, isOnline, addNotification, clearNotificationsByTitle)
@@ -496,6 +498,83 @@ export default function Home() {
     setShowSubBoxManager(!showSubBoxManager)
   }
 
+  const updateLineup = (lineup) => {
+    const newData = {
+      ...spreadsheetData,
+      lineup,
+      metadata: {
+        ...spreadsheetData.metadata,
+        lastModified: new Date().toISOString()
+      }
+    }
+    updateSpreadsheet(newData)
+  }
+
+  const toggleLineupManager = () => {
+    setShowLineupManager(!showLineupManager)
+  }
+
+  const exportToCSV = () => {
+    if (!spreadsheetData.rows || !spreadsheetData.cols) return
+    
+    const csvRows = []
+    
+    // Create header row
+    const headerRow = ['']
+    for (let col = 0; col < spreadsheetData.cols; col++) {
+      const header = spreadsheetData.columnHeaders?.[col] || `Column ${col + 1}`
+      headerRow.push(header)
+    }
+    csvRows.push(headerRow)
+    
+    // Create data rows
+    for (let row = 0; row < spreadsheetData.rows; row++) {
+      const csvRow = []
+      
+      // Add row header
+      const rowHeader = spreadsheetData.rowHeaders?.[row] || `Row ${row + 1}`
+      csvRow.push(rowHeader)
+      
+      // Add cell data
+      for (let col = 0; col < spreadsheetData.cols; col++) {
+        const cellKey = `${row}-${col}`
+        const cellData = spreadsheetData.cells?.[cellKey]
+        const cellValue = cellData?.value || ''
+        csvRow.push(cellValue)
+      }
+      
+      csvRows.push(csvRow)
+    }
+    
+    // Convert to CSV string
+    const csvContent = csvRows.map(row => 
+      row.map(cell => {
+        // Escape quotes and wrap in quotes if contains comma, quote, or newline
+        const escaped = String(cell).replace(/"/g, '""')
+        return /[,"\n\r]/.test(escaped) ? `"${escaped}"` : escaped
+      }).join(',')
+    ).join('\n')
+    
+    // Create and trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    const title = (spreadsheetData.metadata?.title || 'spreadsheet').replace(/[^a-zA-Z0-9]/g, '_')
+    const stage = (spreadsheetData.metadata?.stage || 'draft').replace(/[^a-zA-Z0-9]/g, '_')
+    const date = spreadsheetData.metadata?.date || new Date().toISOString().split('T')[0]
+    const filename = `${title}_${stage}_${date}.csv`
+    
+    link.setAttribute('href', url)
+    link.setAttribute('download', filename)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+    
+    addNotification('Export Complete', 'Spreadsheet downloaded as CSV', NOTIFICATION_TYPES.SUCCESS, NOTIFICATION_DURATIONS.SHORT)
+  }
+
   const handleSelectSpreadsheet = (spreadsheetId, initialData = null) => {
     setCurrentSpreadsheetId(spreadsheetId)
     if (initialData) {
@@ -580,6 +659,13 @@ export default function Home() {
         onClose={() => setShowSubBoxManager(false)}
       />
       
+      <LineupManager
+        lineup={spreadsheetData.lineup || []}
+        onUpdate={updateLineup}
+        isVisible={showLineupManager}
+        onClose={() => setShowLineupManager(false)}
+      />
+      
       {/* Toolbar with animation container */}
       <div className={`${styles.toolbarContainer} ${showHeaders ? styles.visible : styles.hidden}`}>
         <Toolbar
@@ -590,6 +676,8 @@ export default function Home() {
           date={spreadsheetData.metadata?.date || new Date().toISOString().split('T')[0]}
           onUpdateDate={updateSpreadsheetDate}
           onToggleSubBoxManager={toggleSubBoxManager}
+          onToggleLineupManager={toggleLineupManager}
+          onExportCSV={exportToCSV}
         />
       </div>
       <div className={styles.spreadsheetContainer}>
