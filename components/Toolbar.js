@@ -112,12 +112,7 @@ export default function Toolbar({
   const handleDateChange = (e) => {
     const newDisplayDate = e.target.value
     setLocalDate(newDisplayDate)
-    
-    // Convert to ISO format for storage
-    const isoDate = convertToISOFormat(newDisplayDate)
-    if (onUpdateDate) {
-      onUpdateDate(isoDate)
-    }
+    // Don't convert or save until blur - just update local state for typing
   }
 
   const handleDateBlur = () => {

@@ -11,10 +11,12 @@ const STAGE_POSITIONS = [
 
 export default function SubBoxManager({ subBoxes = [], onUpdate, isVisible, onClose }) {
   const [localSubBoxes, setLocalSubBoxes] = useState(subBoxes)
+  const [editingValues, setEditingValues] = useState({})
 
   // Sync local state with prop changes (for loading from Firebase/localStorage)
   useEffect(() => {
     setLocalSubBoxes(subBoxes)
+    setEditingValues({})
   }, [subBoxes])
 
   const handleAddSubBox = () => {
@@ -33,15 +35,61 @@ export default function SubBoxManager({ subBoxes = [], onUpdate, isVisible, onCl
   const handleRemoveSubBox = (id) => {
     const updated = localSubBoxes.filter(subBox => subBox.id !== id)
     setLocalSubBoxes(updated)
+    setEditingValues(prev => {
+      const newValues = { ...prev }
+      delete newValues[`${id}_name`]
+      delete newValues[`${id}_inputs`]
+      delete newValues[`${id}_stagePosition`]
+      return newValues
+    })
     onUpdate(updated)
   }
 
-  const handleUpdateSubBox = (id, field, value) => {
+  const handleInputChange = (id, field, value) => {
+    const key = `${id}_${field}`
+    setEditingValues(prev => ({
+      ...prev,
+      [key]: value
+    }))
+  }
+
+  const handleInputBlur = (id, field) => {
+    const key = `${id}_${field}`
+    const value = editingValues[key]
+    
+    if (value !== undefined) {
+      let processedValue = value
+      if (field === 'inputs') {
+        processedValue = parseInt(value) || 0
+      }
+      
+      const updated = localSubBoxes.map(subBox =>
+        subBox.id === id ? { ...subBox, [field]: processedValue } : subBox
+      )
+      setLocalSubBoxes(updated)
+      onUpdate(updated)
+      
+      // Clear the editing value after successful update
+      setEditingValues(prev => {
+        const newValues = { ...prev }
+        delete newValues[key]
+        return newValues
+      })
+    }
+  }
+
+  const handleColorChange = (id, value) => {
+    // Color input can update immediately as it's typically a single action
     const updated = localSubBoxes.map(subBox =>
-      subBox.id === id ? { ...subBox, [field]: value } : subBox
+      subBox.id === id ? { ...subBox, color: value } : subBox
     )
     setLocalSubBoxes(updated)
     onUpdate(updated)
+  }
+
+  const getInputValue = (subBox, field) => {
+    const key = `${subBox.id}_${field}`
+    return editingValues[key] !== undefined ? editingValues[key] : subBox[field]
   }
 
   if (!isVisible) return null
@@ -76,8 +124,9 @@ export default function SubBoxManager({ subBoxes = [], onUpdate, isVisible, onCl
                 <div className={styles.subBoxHeader}>
                   <input
                     type="text"
-                    value={subBox.name}
-                    onChange={(e) => handleUpdateSubBox(subBox.id, 'name', e.target.value)}
+                    value={getInputValue(subBox, 'name')}
+                    onChange={(e) => handleInputChange(subBox.id, 'name', e.target.value)}
+                    onBlur={() => handleInputBlur(subBox.id, 'name')}
                     className={styles.nameInput}
                     placeholder="Sub-box name"
                   />
@@ -95,8 +144,9 @@ export default function SubBoxManager({ subBoxes = [], onUpdate, isVisible, onCl
                     <label>Inputs:</label>
                     <input
                       type="number"
-                      value={subBox.inputs}
-                      onChange={(e) => handleUpdateSubBox(subBox.id, 'inputs', parseInt(e.target.value) || 0)}
+                      value={getInputValue(subBox, 'inputs')}
+                      onChange={(e) => handleInputChange(subBox.id, 'inputs', e.target.value)}
+                      onBlur={() => handleInputBlur(subBox.id, 'inputs')}
                       className={styles.numberInput}
                       min="1"
                       max="32"
@@ -108,7 +158,7 @@ export default function SubBoxManager({ subBoxes = [], onUpdate, isVisible, onCl
                     <input
                       type="color"
                       value={subBox.color}
-                      onChange={(e) => handleUpdateSubBox(subBox.id, 'color', e.target.value)}
+                      onChange={(e) => handleColorChange(subBox.id, e.target.value)}
                       className={styles.colorInput}
                       list="color-options"
                       placeholder="#ff0000"
@@ -127,8 +177,9 @@ export default function SubBoxManager({ subBoxes = [], onUpdate, isVisible, onCl
                     <label>Stage Position:</label>
                     <input
                       type="text"
-                      value={subBox.stagePosition}
-                      onChange={(e) => handleUpdateSubBox(subBox.id, 'stagePosition', e.target.value)}
+                      value={getInputValue(subBox, 'stagePosition')}
+                      onChange={(e) => handleInputChange(subBox.id, 'stagePosition', e.target.value)}
+                      onBlur={() => handleInputBlur(subBox.id, 'stagePosition')}
                       className={styles.positionInput}
                       list="stage-positions"
                     />

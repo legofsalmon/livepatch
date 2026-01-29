@@ -53,6 +53,7 @@ export default function Home() {
   const [currentSpreadsheetId, setCurrentSpreadsheetId] = useState(null)
   const [spreadsheetData, setSpreadsheetData] = useState({})
   const [isConnected, setIsConnected] = useState(false)
+  const [hasShownConnectionNotification, setHasShownConnectionNotification] = useState(false)
   const [isOnline, setIsOnline] = useState(true)
   const [showHeaders, setShowHeaders] = useState(true)
   const [showSubBoxManager, setShowSubBoxManager] = useState(false)
@@ -125,34 +126,54 @@ export default function Home() {
     // Listen for real-time updates
     const unsubscribe = onValue(spreadsheetRef, (snapshot) => {
       const data = snapshot.val()
+      const wasConnected = isConnected
+      
       if (data) {
         setSpreadsheetData(data)
         saveToLocalStorage(currentSpreadsheetId, data)
         
-        if (!isConnected) {
+        // Only show connection notification on first connection or reconnection
+        if (!wasConnected && !hasShownConnectionNotification) {
           clearNotificationsByTitle('Connection Lost')
           clearNotificationsByTitle('Reconnecting...')
           clearNotificationsByTitle('Offline Mode')
           addNotification('Connected', 'Real-time sync enabled', NOTIFICATION_TYPES.SUCCESS, NOTIFICATION_DURATIONS.SHORT)
+          setHasShownConnectionNotification(true)
         }
       } else {
-        // Initialize with default data if empty
-        const defaultData = { ...DEFAULT_SPREADSHEET }
-        updateSpreadsheetData(currentSpreadsheetId, defaultData)
-        setSpreadsheetData(defaultData)
-        saveToLocalStorage(currentSpreadsheetId, defaultData)
+        // Firebase has no data - check if we have local data to upload
+        const existingLocalData = loadFromLocalStorage(currentSpreadsheetId)
+        if (existingLocalData) {
+          // Upload existing local data to Firebase
+          console.log('Uploading existing local data to Firebase')
+          updateSpreadsheetData(currentSpreadsheetId, existingLocalData)
+          setSpreadsheetData(existingLocalData)
+        } else {
+          // Initialize with default data if no local data exists
+          const defaultData = { ...DEFAULT_SPREADSHEET }
+          updateSpreadsheetData(currentSpreadsheetId, defaultData)
+          setSpreadsheetData(defaultData)
+          saveToLocalStorage(currentSpreadsheetId, defaultData)
+        }
         
-        if (!isConnected) {
+        // Only show connection notification on first connection or reconnection
+        if (!wasConnected && !hasShownConnectionNotification) {
           clearNotificationsByTitle('Connection Lost')
           clearNotificationsByTitle('Reconnecting...')
           clearNotificationsByTitle('Offline Mode')
           addNotification('Connected', 'New spreadsheet created', NOTIFICATION_TYPES.SUCCESS, NOTIFICATION_DURATIONS.SHORT)
+          setHasShownConnectionNotification(true)
         }
       }
-      setIsConnected(true)
+      
+      // Set connected state after checking previous state
+      if (!wasConnected) {
+        setIsConnected(true)
+      }
     }, (error) => {
       console.error('Firebase connection error:', error)
       setIsConnected(false)
+      setHasShownConnectionNotification(false) // Reset flag so we can show notification on reconnect
       
       const currentLocalData = loadFromLocalStorage(currentSpreadsheetId)
       if (currentLocalData) {
