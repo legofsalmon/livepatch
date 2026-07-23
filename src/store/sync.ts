@@ -4,8 +4,43 @@ import { loadSyncSettings, saveSyncSettings, type SyncSettings } from './syncSet
 
 export type SyncStatus = 'off' | 'connecting' | 'connected'
 
+export interface RemotePeer {
+  clientId: number
+  name: string
+  color: string
+  /** `${artistId}:${channelId}:${field}` of the cell the peer is editing, if any. */
+  editingCell: string | null
+}
+
 /** Stable per-session device id, announced via awareness so peers can be counted. */
 const deviceId = crypto.randomUUID()
+
+const USER_NAME_KEY = 'livepatch-user-name'
+
+const PEER_COLORS = [
+  '#e74c3c',
+  '#3498db',
+  '#27ae60',
+  '#f39c12',
+  '#9b59b6',
+  '#16a085',
+  '#d35400',
+  '#2c3e50',
+]
+
+const colorFor = (id: string): string => {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) | 0
+  return PEER_COLORS[Math.abs(hash) % PEER_COLORS.length]
+}
+
+const loadUserName = (): string => {
+  try {
+    return localStorage.getItem(USER_NAME_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
 
 /**
  * Attaches a y-websocket provider to every open doc (the doc/room name is the
@@ -19,6 +54,8 @@ class SyncManager {
   private connected = new Map<string, boolean>()
   private settings: SyncSettings = loadSyncSettings()
   private listeners = new Set<() => void>()
+  private userName = loadUserName()
+  private peerCache = new Map<string, { key: string; value: RemotePeer[] }>()
 
   getSettings(): SyncSettings {
     return this.settings
@@ -30,6 +67,28 @@ class SyncManager {
     for (const name of [...this.providers.keys()]) this.disconnectDoc(name)
     for (const [name, doc] of this.docs) this.connectDoc(name, doc)
     this.emit()
+  }
+
+  getUserName(): string {
+    return this.userName
+  }
+
+  setUserName(name: string) {
+    this.userName = name.trim()
+    try {
+      localStorage.setItem(USER_NAME_KEY, this.userName)
+    } catch {
+      // Not persisted, but still applied for this session.
+    }
+    for (const provider of this.providers.values()) {
+      provider.awareness.setLocalStateField('user', this.userField())
+    }
+    this.emit()
+  }
+
+  /** Announce which cell this device is editing in the given doc's room. */
+  setEditingCell(name: string, cell: string | null) {
+    this.providers.get(name)?.awareness.setLocalStateField('editing', cell)
   }
 
   attach(name: string, doc: Y.Doc) {
@@ -44,6 +103,10 @@ class SyncManager {
     this.emit()
   }
 
+  private userField() {
+    return { id: deviceId, name: this.userName, color: colorFor(deviceId) }
+  }
+
   private connectDoc(name: string, doc: Y.Doc) {
     if (!this.settings.url || typeof WebSocket === 'undefined') return
     const provider = new WebsocketProvider(this.settings.url, name, doc, {
@@ -55,7 +118,7 @@ class SyncManager {
     })
     // Peers only appear in each other's awareness once a local state is set —
     // an untouched (empty) state is never broadcast on join.
-    provider.awareness.setLocalStateField('device', { id: deviceId })
+    provider.awareness.setLocalStateField('user', this.userField())
     provider.awareness.on('change', () => this.emit())
     this.providers.set(name, provider)
   }
@@ -67,6 +130,7 @@ class SyncManager {
       this.providers.delete(name)
     }
     this.connected.delete(name)
+    this.peerCache.delete(name)
   }
 
   /** Overall status: connected if any room is, connecting if trying, off if unconfigured. */
@@ -83,6 +147,34 @@ class SyncManager {
     return provider.awareness.getStates().size
   }
 
+  /**
+   * Remote peers in a doc's room (excluding this device). Returns a cached
+   * array reference while the underlying states are unchanged so it can be a
+   * useSyncExternalStore snapshot.
+   */
+  remotePeers(name: string): RemotePeer[] {
+    const provider = this.providers.get(name)
+    if (!provider || !this.connected.get(name)) return EMPTY_PEERS
+    const peers: RemotePeer[] = []
+    for (const [clientId, state] of provider.awareness.getStates()) {
+      if (clientId === provider.awareness.clientID) continue
+      const user = (state as { user?: { name?: string; color?: string } }).user
+      if (!user) continue
+      peers.push({
+        clientId,
+        name: user.name?.trim() || 'Crew member',
+        color: user.color ?? PEER_COLORS[0],
+        editingCell: (state as { editing?: string | null }).editing ?? null,
+      })
+    }
+    peers.sort((a, b) => a.clientId - b.clientId)
+    const key = JSON.stringify(peers)
+    const cached = this.peerCache.get(name)
+    if (cached && cached.key === key) return cached.value
+    this.peerCache.set(name, { key, value: peers })
+    return peers
+  }
+
   subscribe = (listener: () => void) => {
     this.listeners.add(listener)
     return () => this.listeners.delete(listener)
@@ -92,5 +184,7 @@ class SyncManager {
     for (const listener of this.listeners) listener()
   }
 }
+
+const EMPTY_PEERS: RemotePeer[] = []
 
 export const syncManager = new SyncManager()

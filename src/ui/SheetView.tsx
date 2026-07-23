@@ -1,13 +1,33 @@
 import { useState } from 'react'
 import { useSheet } from '../store/hooks'
 import { sheetDocName } from '../store/docManager'
-import { useSyncPeers, useSyncStatus } from '../store/useSync'
+import { useRemotePeers, useSyncPeers, useSyncStatus } from '../store/useSync'
 import Toolbar from './Toolbar'
 import PatchGrid from './PatchGrid'
 import SubBoxManager from './SubBoxManager'
 import LineupManager from './LineupManager'
 import SyncSettingsDialog from './SyncSettingsDialog'
 import styles from './SheetView.module.scss'
+
+function PresenceAvatars({ sheetId }: { sheetId: string }) {
+  const peers = useRemotePeers(sheetDocName(sheetId))
+  if (peers.length === 0) return null
+  return (
+    <span className={styles.avatars} aria-label={`Also here: ${peers.map((p) => p.name).join(', ')}`}>
+      {peers.slice(0, 5).map((peer) => (
+        <span
+          key={peer.clientId}
+          className={styles.avatar}
+          style={{ backgroundColor: peer.color }}
+          title={peer.name}
+        >
+          {peer.name.charAt(0).toUpperCase()}
+        </span>
+      ))}
+      {peers.length > 5 && <span className={styles.avatarOverflow}>+{peers.length - 5}</span>}
+    </span>
+  )
+}
 
 function SyncStatusChip({
   sheetId,
@@ -75,6 +95,7 @@ export default function SheetView({ sheetId, onClose }: { sheetId: string; onClo
             </button>
           </div>
           <div className={styles.headerRight}>
+            <PresenceAvatars sheetId={sheetId} />
             <SyncStatusChip sheetId={sheetId} onOpenSettings={() => setShowSyncSettings(true)} />
           </div>
         </header>
@@ -90,7 +111,7 @@ export default function SheetView({ sheetId, onClose }: { sheetId: string; onClo
       )}
 
       <div className={styles.gridArea}>
-        <PatchGrid doc={doc} snapshot={snapshot} />
+        <PatchGrid doc={doc} docName={sheetDocName(sheetId)} snapshot={snapshot} />
       </div>
 
       {showSubBoxes && (

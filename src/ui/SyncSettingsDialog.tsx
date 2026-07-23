@@ -9,6 +9,7 @@ export default function SyncSettingsDialog({ onClose }: { onClose: () => void })
   const current = syncManager.getSettings()
   const [url, setUrl] = useState(current.url)
   const [token, setToken] = useState(current.token)
+  const [userName, setUserName] = useState(syncManager.getUserName())
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -20,6 +21,7 @@ export default function SyncSettingsDialog({ onClose }: { onClose: () => void })
 
   const handleSave = () => {
     const normalized = normalizeSyncUrl(url)
+    syncManager.setUserName(userName)
     syncManager.updateSettings({ url: normalized, token: token.trim() })
     addToast(
       normalized ? 'Sync configured' : 'Sync disabled',
@@ -51,6 +53,18 @@ export default function SyncSettingsDialog({ onClose }: { onClose: () => void })
             relay on the venue network (e.g. <code>ws://192.168.1.20:1234</code>). Leave the URL
             empty to stay local-only.
           </p>
+          <div className={styles.notes}>
+            <label htmlFor="sync-name">Your name (shown to other devices):</label>
+            <input
+              id="sync-name"
+              className={styles.wideInput}
+              type="text"
+              placeholder="e.g. Monitors — Sam"
+              maxLength={40}
+              value={userName}
+              onChange={(e) => setUserName(e.target.value)}
+            />
+          </div>
           <div className={styles.notes}>
             <label htmlFor="sync-url">Relay server URL:</label>
             <input

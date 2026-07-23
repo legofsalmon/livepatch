@@ -15,6 +15,7 @@ import {
   type SheetSnapshot,
 } from '../model/types'
 import { FIELD_SUGGESTIONS, SUB_BOX_FALLBACK_SUGGESTIONS } from '../model/constants'
+import { useRemotePeers } from '../store/useSync'
 import PatchCell from './PatchCell'
 import { useDraft } from './useDraft'
 import styles from './PatchGrid.module.scss'
@@ -70,8 +71,22 @@ function ChannelHeader({
   )
 }
 
-export default function PatchGrid({ doc, snapshot }: { doc: Y.Doc; snapshot: SheetSnapshot }) {
+export default function PatchGrid({
+  doc,
+  docName,
+  snapshot,
+}: {
+  doc: Y.Doc
+  docName: string
+  snapshot: SheetSnapshot
+}) {
   const { channels, artists, subBoxes, patches } = snapshot
+  const remotePeers = useRemotePeers(docName)
+
+  const remoteEditors: Record<string, { name: string; color: string }> = {}
+  for (const peer of remotePeers) {
+    if (peer.editingCell) remoteEditors[peer.editingCell] = { name: peer.name, color: peer.color }
+  }
 
   const subBoxOptions =
     subBoxes.length > 0 ? subBoxes.map(subBoxDisplayName) : [...SUB_BOX_FALLBACK_SUGGESTIONS]
@@ -142,6 +157,7 @@ export default function PatchGrid({ doc, snapshot }: { doc: Y.Doc; snapshot: She
                     <PatchCell
                       key={field}
                       doc={doc}
+                      docName={docName}
                       artistId={artist.id}
                       channelId={channel.id}
                       field={field}
@@ -149,6 +165,7 @@ export default function PatchGrid({ doc, snapshot }: { doc: Y.Doc; snapshot: She
                       subBoxes={subBoxes}
                       datalistId={DATALIST_IDS[field]}
                       label={`${artist.name}, channel ${channel.label}, ${PATCH_FIELD_LABELS[field]}`}
+                      remoteEditor={remoteEditors[`${artist.id}:${channel.id}:${field}`]}
                     />
                   ))}
                 </Fragment>

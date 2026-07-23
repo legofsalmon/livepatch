@@ -106,6 +106,35 @@
   background: $color-muted;
 }
 
+.avatars {
+  display: inline-flex;
+  align-items: center;
+}
+
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 2px solid $color-ink;
+  margin-left: -6px;
+
+  &:first-child {
+    margin-left: 0;
+  }
+}
+
+.avatarOverflow {
+  margin-left: 4px;
+  font-size: 0.72rem;
+  opacity: 0.8;
+}
+
 .off .statusDot {
   background: $color-muted;
 }
