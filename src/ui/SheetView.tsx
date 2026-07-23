@@ -1,10 +1,39 @@
 import { useState } from 'react'
 import { useSheet } from '../store/hooks'
+import { sheetDocName } from '../store/docManager'
+import { useSyncPeers, useSyncStatus } from '../store/useSync'
 import Toolbar from './Toolbar'
 import PatchGrid from './PatchGrid'
 import SubBoxManager from './SubBoxManager'
 import LineupManager from './LineupManager'
+import SyncSettingsDialog from './SyncSettingsDialog'
 import styles from './SheetView.module.scss'
+
+function SyncStatusChip({ sheetId, onOpenSettings }: { sheetId: string; onOpenSettings: () => void }) {
+  const status = useSyncStatus()
+  const peers = useSyncPeers(sheetDocName(sheetId))
+
+  const label =
+    status === 'off'
+      ? 'Local only'
+      : status === 'connecting'
+        ? 'Connecting…'
+        : peers > 1
+          ? `Synced · ${peers} devices`
+          : 'Synced'
+
+  return (
+    <button
+      type="button"
+      className={`${styles.statusChip} ${styles[status]}`}
+      onClick={onOpenSettings}
+      title="Sync settings"
+    >
+      <span className={styles.statusDot} aria-hidden="true" />
+      {label}
+    </button>
+  )
+}
 
 export default function SheetView({
   sheetId,
@@ -17,6 +46,7 @@ export default function SheetView({
   const [showHeaders, setShowHeaders] = useState(true)
   const [showSubBoxes, setShowSubBoxes] = useState(false)
   const [showLineup, setShowLineup] = useState(false)
+  const [showSyncSettings, setShowSyncSettings] = useState(false)
 
   if (!doc || !snapshot || !loaded) {
     return <div className={styles.loading}>Loading sheet…</div>
@@ -45,7 +75,7 @@ export default function SheetView({
             </button>
           </div>
           <div className={styles.headerRight}>
-            <span className={styles.statusChip}>Saved on this device</span>
+            <SyncStatusChip sheetId={sheetId} onOpenSettings={() => setShowSyncSettings(true)} />
           </div>
         </header>
       )}
@@ -69,6 +99,7 @@ export default function SheetView({
       {showLineup && (
         <LineupManager doc={doc} snapshot={snapshot} onClose={() => setShowLineup(false)} />
       )}
+      {showSyncSettings && <SyncSettingsDialog onClose={() => setShowSyncSettings(false)} />}
     </div>
   )
 }

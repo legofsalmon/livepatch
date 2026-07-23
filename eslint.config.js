@@ -24,10 +24,14 @@ export default tseslint.config(
         process: 'readonly',
         console: 'readonly',
         Buffer: 'readonly',
+        URL: 'readonly',
         __dirname: 'readonly',
         require: 'readonly',
         module: 'writable',
       },
+    },
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
   prettier

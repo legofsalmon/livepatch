@@ -2,14 +2,18 @@ import * as Y from 'yjs'
 import { IndexeddbPersistence } from 'y-indexeddb'
 import { getSheetRoots, initSheet, LOCAL_ORIGIN } from '../model/sheetDoc'
 import { removeIndexEntry, upsertIndexEntry } from '../model/indexDoc'
+import { syncManager } from './sync'
 
 /**
  * Owns the lifecycle of Y.Docs and their IndexedDB persistence. One doc per
- * sheet plus a singleton index doc. Sync providers attach in the sync layer.
+ * sheet plus a singleton index doc. The doc name doubles as the IndexedDB
+ * database name and the sync room name.
  */
 
 const SHEET_DB_PREFIX = 'livepatch-sheet-'
 export const INDEX_DOC_NAME = 'livepatch-index'
+
+export const sheetDocName = (sheetId: string) => SHEET_DB_PREFIX + sheetId
 
 export interface DocHandle {
   doc: Y.Doc
@@ -27,10 +31,12 @@ const openDoc = (dbName: string): DocHandle => {
   }
   const persistence = new IndexeddbPersistence(dbName, doc)
   const whenLoaded = persistence.whenSynced.then(() => undefined)
+  syncManager.attach(dbName, doc)
   return {
     doc,
     whenLoaded,
     destroy: () => {
+      syncManager.detach(dbName)
       persistence.destroy()
       doc.destroy()
     },

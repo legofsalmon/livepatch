@@ -184,3 +184,36 @@
   color: $color-muted;
   padding: 18px 0;
 }
+
+.hint {
+  font-size: 0.85rem;
+  color: $color-ink-soft;
+  margin-bottom: 14px;
+  line-height: 1.5;
+
+  code {
+    background: $color-surface-dim;
+    padding: 1px 5px;
+    border-radius: $radius-small;
+    font-size: 0.8rem;
+  }
+}
+
+.wideInput {
+  width: 100%;
+  border: 1px solid $color-border;
+  border-radius: $radius-small;
+  padding: 8px 10px;
+  font-size: 0.9rem;
+
+  &:focus {
+    outline: none;
+    border-color: $color-primary;
+  }
+}
+
+.dialogActions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+}

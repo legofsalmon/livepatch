@@ -83,10 +83,39 @@
 }
 
 .statusChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 0.78rem;
   padding: 4px 10px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.15);
+  border: 1px solid transparent;
+  color: #fff;
+  cursor: pointer;
+
+  &:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+}
+
+.statusDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: $color-muted;
+}
+
+.off .statusDot {
+  background: $color-muted;
+}
+
+.connecting .statusDot {
+  background: $color-accent-orange;
+}
+
+.connected .statusDot {
+  background: $color-accent-green;
 }
 
 .gridArea {

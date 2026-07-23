@@ -3,6 +3,7 @@ import { createSheet, deleteSheet } from '../store/docManager'
 import { useSheetIndex } from '../store/hooks'
 import { isoToDisplay } from '../model/date'
 import { useToasts } from './toastContext'
+import SyncSettingsDialog from './SyncSettingsDialog'
 import styles from './SheetSelector.module.scss'
 
 export default function SheetSelector({ onOpen }: { onOpen: (sheetId: string) => void }) {
@@ -10,6 +11,7 @@ export default function SheetSelector({ onOpen }: { onOpen: (sheetId: string) =>
   const { addToast } = useToasts()
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
+  const [showSyncSettings, setShowSyncSettings] = useState(false)
 
   const handleCreate = () => {
     if (!name.trim()) return
@@ -31,7 +33,15 @@ export default function SheetSelector({ onOpen }: { onOpen: (sheetId: string) =>
       <header className={styles.hero}>
         <h1>Live Patch</h1>
         <p>Patch sheets that work with no internet and sync when you have it</p>
+        <button
+          type="button"
+          className={styles.syncButton}
+          onClick={() => setShowSyncSettings(true)}
+        >
+          ⚙ Sync settings
+        </button>
       </header>
+      {showSyncSettings && <SyncSettingsDialog onClose={() => setShowSyncSettings(false)} />}
 
       <div className={styles.actions}>
         {creating ? (
