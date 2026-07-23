@@ -5,15 +5,7 @@ import type { Artist, SheetSnapshot } from '../model/types'
 import { useDraft } from './useDraft'
 import styles from './Manager.module.scss'
 
-function ArtistRow({
-  doc,
-  artist,
-  removable,
-}: {
-  doc: Y.Doc
-  artist: Artist
-  removable: boolean
-}) {
+function ArtistRow({ doc, artist, removable }: { doc: Y.Doc; artist: Artist; removable: boolean }) {
   const name = useDraft(artist.name, (next) =>
     updateArtist(doc, artist.id, { name: next.trim() || artist.name })
   )

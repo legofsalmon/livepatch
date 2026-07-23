@@ -24,8 +24,7 @@ export default function PatchCell({
   label: string
 }) {
   const resolved = entry ?? emptyPatchEntry()
-  const displayValue =
-    field === 'subBox' ? patchSubBoxDisplay(resolved, subBoxes) : resolved[field]
+  const displayValue = field === 'subBox' ? patchSubBoxDisplay(resolved, subBoxes) : resolved[field]
 
   const draft = useDraft(displayValue, (next) => {
     if (field === 'subBox') {

@@ -149,11 +149,7 @@ export const addArtist = (doc: Y.Doc): string => {
   return id
 }
 
-export const updateArtist = (
-  doc: Y.Doc,
-  artistId: string,
-  fields: Partial<Omit<Artist, 'id'>>
-) => {
+export const updateArtist = (doc: Y.Doc, artistId: string, fields: Partial<Omit<Artist, 'id'>>) => {
   const { artists } = getSheetRoots(doc)
   transact(doc, () => {
     const found = findById(artists, artistId)
@@ -194,11 +190,7 @@ export const addSubBox = (doc: Y.Doc, defaults?: Partial<Omit<SubBox, 'id'>>): s
   return id
 }
 
-export const updateSubBox = (
-  doc: Y.Doc,
-  subBoxId: string,
-  fields: Partial<Omit<SubBox, 'id'>>
-) => {
+export const updateSubBox = (doc: Y.Doc, subBoxId: string, fields: Partial<Omit<SubBox, 'id'>>) => {
   const { subBoxes } = getSheetRoots(doc)
   transact(doc, () => {
     const found = findById(subBoxes, subBoxId)
@@ -281,7 +273,11 @@ export const setPatchSubBox = (doc: Y.Doc, artistId: string, channelId: string, 
 }
 
 /** Copy every patch entry from one artist onto another (overwriting). */
-export const copyPatchesFromArtist = (doc: Y.Doc, sourceArtistId: string, targetArtistId: string) => {
+export const copyPatchesFromArtist = (
+  doc: Y.Doc,
+  sourceArtistId: string,
+  targetArtistId: string
+) => {
   const { channels, patches } = getSheetRoots(doc)
   transact(doc, () => {
     for (const channel of channels.toArray()) {

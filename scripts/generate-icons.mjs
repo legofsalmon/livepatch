@@ -48,7 +48,11 @@ const encodePng = (size, pixels) => {
   ])
 }
 
-const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]
+const hex = (h) => [
+  parseInt(h.slice(1, 3), 16),
+  parseInt(h.slice(3, 5), 16),
+  parseInt(h.slice(5, 7), 16),
+]
 
 const BG = hex('#1a1d23')
 // A stylised patch grid: three columns of "channel" blocks in the app accent colors.

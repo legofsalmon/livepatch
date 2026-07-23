@@ -9,7 +9,13 @@ import LineupManager from './LineupManager'
 import SyncSettingsDialog from './SyncSettingsDialog'
 import styles from './SheetView.module.scss'
 
-function SyncStatusChip({ sheetId, onOpenSettings }: { sheetId: string; onOpenSettings: () => void }) {
+function SyncStatusChip({
+  sheetId,
+  onOpenSettings,
+}: {
+  sheetId: string
+  onOpenSettings: () => void
+}) {
   const status = useSyncStatus()
   const peers = useSyncPeers(sheetDocName(sheetId))
 
@@ -35,13 +41,7 @@ function SyncStatusChip({ sheetId, onOpenSettings }: { sheetId: string; onOpenSe
   )
 }
 
-export default function SheetView({
-  sheetId,
-  onClose,
-}: {
-  sheetId: string
-  onClose: () => void
-}) {
+export default function SheetView({ sheetId, onClose }: { sheetId: string; onClose: () => void }) {
   const { doc, snapshot, loaded } = useSheet(sheetId)
   const [showHeaders, setShowHeaders] = useState(true)
   const [showSubBoxes, setShowSubBoxes] = useState(false)
