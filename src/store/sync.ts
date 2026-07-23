@@ -62,10 +62,18 @@ class SyncManager {
   }
 
   updateSettings(settings: SyncSettings) {
+    // Only the transport (url/token) requires reconnecting providers. A
+    // name-only save must NOT churn connections — that reconnect drops and
+    // re-establishes presence, so peers briefly vanish. Display-name changes
+    // propagate live via setUserName's awareness update instead.
+    const transportChanged =
+      settings.url !== this.settings.url || settings.token !== this.settings.token
     this.settings = settings
     saveSyncSettings(settings)
-    for (const name of [...this.providers.keys()]) this.disconnectDoc(name)
-    for (const [name, doc] of this.docs) this.connectDoc(name, doc)
+    if (transportChanged) {
+      for (const name of [...this.providers.keys()]) this.disconnectDoc(name)
+      for (const [name, doc] of this.docs) this.connectDoc(name, doc)
+    }
     this.emit()
   }
 

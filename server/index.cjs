@@ -21,6 +21,13 @@ const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, 'data')
 const FILES_DIR = path.join(DATA_DIR, 'files')
 const MAX_FILE_BYTES = Number(process.env.MAX_FILE_BYTES || 25 * 1024 * 1024)
 
+// "Box mode": also serve the built app, so one machine on the venue network
+// provides everything — crew devices just browse to it. Enabled whenever the
+// built app is found (or STATIC_DIR points at it).
+const DEFAULT_STATIC = path.join(__dirname, '..', 'dist')
+const STATIC_DIR =
+  process.env.STATIC_DIR || (fs.existsSync(path.join(DEFAULT_STATIC, 'index.html')) ? DEFAULT_STATIC : '')
+
 fs.mkdirSync(FILES_DIR, { recursive: true })
 
 if (!TOKEN) {
@@ -116,6 +123,60 @@ const handleFileRequest = (req, res, url, id) => {
   send(res, 405, 'Method not allowed\n')
 }
 
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.svg': 'image/svg+xml',
+  '.png': 'image/png',
+  '.ico': 'image/x-icon',
+  '.webmanifest': 'application/manifest+json',
+  '.json': 'application/json',
+  '.map': 'application/json',
+  '.txt': 'text/plain',
+  '.woff2': 'font/woff2',
+}
+
+// index.html gets a marker so the app knows it was served by the relay and
+// defaults its sync URL to this same origin — zero configuration for crew.
+let indexHtmlCache = null
+const boxIndexHtml = () => {
+  if (indexHtmlCache === null) {
+    const raw = fs.readFileSync(path.join(STATIC_DIR, 'index.html'), 'utf8')
+    indexHtmlCache = raw.replace(
+      '</head>',
+      '<script>window.__LIVEPATCH_BOX__=true</script></head>'
+    )
+  }
+  return indexHtmlCache
+}
+
+const serveStatic = (req, res, url) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') return send(res, 405, 'Method not allowed\n')
+  const pathname = decodeURIComponent(url.pathname)
+  const resolved = path.normalize(path.join(STATIC_DIR, pathname))
+  if (!resolved.startsWith(STATIC_DIR)) return send(res, 403, 'Forbidden\n')
+
+  const isIndex = pathname === '/' || pathname === '/index.html'
+  if (!isIndex && fs.existsSync(resolved) && fs.statSync(resolved).isFile()) {
+    const ext = path.extname(resolved).toLowerCase()
+    // Hashed assets are immutable; the service worker and manifest must not
+    // be cached so app updates propagate on next visit.
+    const cacheable = pathname.startsWith('/assets/')
+    res.writeHead(200, {
+      'Content-Type': MIME[ext] || 'application/octet-stream',
+      'Cache-Control': cacheable ? 'public, max-age=31536000, immutable' : 'no-cache',
+    })
+    if (req.method === 'HEAD') return res.end()
+    return fs.createReadStream(resolved).pipe(res)
+  }
+
+  // index.html and any unknown path (SPA fallback)
+  const html = boxIndexHtml()
+  res.writeHead(200, { 'Content-Type': MIME['.html'], 'Cache-Control': 'no-cache' })
+  res.end(req.method === 'HEAD' ? undefined : html)
+}
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost')
 
@@ -127,6 +188,8 @@ const server = http.createServer((req, res) => {
   if (url.pathname === '/healthz') {
     return send(res, 200, 'ok\n', { 'Content-Type': 'text/plain' })
   }
+
+  if (STATIC_DIR) return serveStatic(req, res, url)
 
   send(res, 200, 'Live Patch sync relay is running\n', { 'Content-Type': 'text/plain' })
 })
@@ -145,5 +208,8 @@ server.on('upgrade', (req, socket, head) => {
 })
 
 server.listen(PORT, HOST, () => {
-  console.log(`Live Patch relay listening on ${HOST}:${PORT} (token ${TOKEN ? 'set' : 'NOT set'})`)
+  console.log(
+    `Live Patch relay listening on ${HOST}:${PORT} ` +
+      `(token ${TOKEN ? 'set' : 'NOT set'}, app ${STATIC_DIR ? `served from ${STATIC_DIR}` : 'not served'})`
+  )
 })

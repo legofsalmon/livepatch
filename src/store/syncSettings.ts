@@ -6,8 +6,21 @@ export interface SyncSettings {
 
 const KEY = 'livepatch-sync'
 
+declare global {
+  interface Window {
+    /** Injected by the relay when it serves the app ("festival box" mode). */
+    __LIVEPATCH_BOX__?: boolean
+  }
+}
+
+/** When the relay itself served this page, it is also the sync server. */
+const boxDefaultUrl = (): string =>
+  typeof window !== 'undefined' && window.__LIVEPATCH_BOX__
+    ? window.location.origin.replace(/^http/i, 'ws')
+    : ''
+
 const envDefault = (): SyncSettings => ({
-  url: (import.meta.env.VITE_SYNC_URL as string | undefined) ?? '',
+  url: (import.meta.env.VITE_SYNC_URL as string | undefined) ?? boxDefaultUrl(),
   token: (import.meta.env.VITE_SYNC_TOKEN as string | undefined) ?? '',
 })
 
@@ -16,7 +29,12 @@ export const loadSyncSettings = (): SyncSettings => {
     const raw = localStorage.getItem(KEY)
     if (!raw) return envDefault()
     const parsed = JSON.parse(raw) as Partial<SyncSettings>
-    return { url: parsed.url ?? '', token: parsed.token ?? '' }
+    return {
+      // On a box, an unset URL heals to the box itself — crew devices should
+      // never sit silently unsynced; an explicit different URL is respected.
+      url: parsed.url || boxDefaultUrl(),
+      token: parsed.token ?? '',
+    }
   } catch {
     return envDefault()
   }

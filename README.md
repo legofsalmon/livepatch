@@ -52,7 +52,12 @@ The app works immediately with no configuration — sheets are saved on the devi
 
 ## Syncing between devices
 
-Run the relay (in `server/`):
+The recommended setup is the **festival box** — one machine on the venue network that
+serves the app, relays sync, and stores attachments; devices that load the app from it
+get sync configured automatically. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the
+Docker one-liner, the systemd alternative, and the on-site runbook.
+
+For ad-hoc use, run the relay directly:
 
 ```bash
 cd server
@@ -60,18 +65,11 @@ npm install
 LIVEPATCH_TOKEN=choose-a-token npm start        # listens on 0.0.0.0:1234
 ```
 
-Then on each device: **⚙ Sync settings** → enter the relay URL and token.
-
-- **Cloud**: deploy `server/` to any Node host and use `wss://your-host` (put it behind
-  TLS). Set the same `LIVEPATCH_TOKEN` on the server and in each client.
-- **LAN show mode (no internet)**: run the relay on a laptop connected to the venue
-  network or a phone hotspot, and point each device at `ws://<laptop-ip>:1234`. Devices
-  sync with each other through the laptop; when the network disappears they keep working
-  solo and merge automatically next time they connect.
-
-The relay holds documents in memory while clients are connected — the durable copies are
-the clients' IndexedDB stores, which re-sync state on every connect. `PORT` and `HOST`
-env vars are also supported.
+Then on each device: **⚙ Sync settings** → enter the relay URL
+(`ws://<machine-ip>:1234` on a LAN, `wss://your-host` behind TLS in the cloud) and the
+token. The relay holds documents in memory while clients are connected — the durable
+copies are the clients' IndexedDB stores, which re-sync state on every connect.
+Attachments are stored under the server's `DATA_DIR`.
 
 Optional build-time defaults for the client: set `VITE_SYNC_URL` and `VITE_SYNC_TOKEN`
 in `.env.local` — users can still override them in Sync settings.
