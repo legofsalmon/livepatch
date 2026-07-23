@@ -3,6 +3,7 @@ import {
   emptyPatchEntry,
   patchKey,
   type Artist,
+  type ArtistFile,
   type Channel,
   type PatchEntry,
   type PatchField,
@@ -84,6 +85,7 @@ export const initSheet = (doc: Y.Doc, options: InitSheetOptions): void => {
         startTime: '19:00',
         endTime: '20:00',
         notes: '',
+        files: new Y.Array<ArtistFile>(),
       }),
     ])
   })
@@ -143,18 +145,60 @@ export const addArtist = (doc: Y.Doc): string => {
         startTime: '19:00',
         endTime: '20:00',
         notes: '',
+        files: new Y.Array<ArtistFile>(),
       }),
     ])
   })
   return id
 }
 
-export const updateArtist = (doc: Y.Doc, artistId: string, fields: Partial<Omit<Artist, 'id'>>) => {
+export const updateArtist = (
+  doc: Y.Doc,
+  artistId: string,
+  fields: Partial<Omit<Artist, 'id' | 'files'>>
+) => {
   const { artists } = getSheetRoots(doc)
   transact(doc, () => {
     const found = findById(artists, artistId)
     if (!found) return
     for (const [k, v] of Object.entries(fields)) found.item.set(k, v)
+  })
+}
+
+/**
+ * The files list is a Y.Array created WITH the artist, so concurrent additions
+ * from different devices merge instead of overwriting each other. The lazy
+ * branch below only covers artists from sheets that predate attachments —
+ * concurrent first-attachments on such an artist can lose one file to a
+ * container-level last-write-wins, which is accepted for that migration case.
+ */
+const getOrCreateFiles = (artist: YEntity): Y.Array<ArtistFile> => {
+  let files = artist.get('files') as Y.Array<ArtistFile> | undefined
+  if (!files) {
+    files = new Y.Array<ArtistFile>()
+    artist.set('files', files)
+  }
+  return files
+}
+
+export const addArtistFile = (doc: Y.Doc, artistId: string, file: ArtistFile) => {
+  const { artists } = getSheetRoots(doc)
+  transact(doc, () => {
+    const found = findById(artists, artistId)
+    if (!found) return
+    getOrCreateFiles(found.item).push([file])
+  })
+}
+
+export const removeArtistFile = (doc: Y.Doc, artistId: string, fileId: string) => {
+  const { artists } = getSheetRoots(doc)
+  transact(doc, () => {
+    const found = findById(artists, artistId)
+    if (!found) return
+    const files = getOrCreateFiles(found.item)
+    for (let i = files.length - 1; i >= 0; i--) {
+      if (files.get(i).id === fileId) files.delete(i)
+    }
   })
 }
 
@@ -310,7 +354,7 @@ export const snapshotSheet = (doc: Y.Doc): SheetSnapshot => {
       created: (meta.get('created') as string) ?? '',
     } satisfies SheetMeta,
     channels: channels.toArray().map((m) => m.toJSON() as Channel),
-    artists: artists.toArray().map((m) => m.toJSON() as Artist),
+    artists: artists.toArray().map((m) => ({ files: [], ...(m.toJSON() as Omit<Artist, 'files'>) })),
     subBoxes: subBoxes.toArray().map((m) => m.toJSON() as SubBox),
     patches: patchesJson,
   }

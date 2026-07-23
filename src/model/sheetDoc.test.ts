@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
 import {
   addArtist,
+  addArtistFile,
   addChannel,
   addSubBox,
+  removeArtistFile,
   copyPatchesFromArtist,
   initSheet,
   removeArtist,
@@ -154,6 +156,40 @@ describe('sub-boxes and patch references', () => {
     expect(entry.subBoxId).toBeNull()
     expect(entry.subBoxText).toBe('Box 1 (MSC)')
     expect(patchSubBoxDisplay(entry, after.subBoxes)).toBe('Box 1 (MSC)')
+  })
+})
+
+describe('artist files', () => {
+  it('adds and removes file metadata', () => {
+    const doc = newSheet()
+    const artist = snapshotSheet(doc).artists[0].id
+    addArtistFile(doc, artist, { id: 'f1', name: 'rider.pdf', type: 'application/pdf', size: 1234 })
+    addArtistFile(doc, artist, { id: 'f2', name: 'stage.png', type: 'image/png', size: 999 })
+
+    let files = snapshotSheet(doc).artists[0].files
+    expect(files.map((f) => f.name)).toEqual(['rider.pdf', 'stage.png'])
+
+    removeArtistFile(doc, artist, 'f1')
+    files = snapshotSheet(doc).artists[0].files
+    expect(files.map((f) => f.id)).toEqual(['f2'])
+  })
+
+  it('merges concurrent file additions from two devices', () => {
+    const a = newSheet()
+    const b = new Y.Doc()
+    sync(a, b)
+    const artist = snapshotSheet(a).artists[0].id
+
+    addArtistFile(a, artist, { id: 'fa', name: 'from-a.pdf', type: 'application/pdf', size: 1 })
+    addArtistFile(b, artist, { id: 'fb', name: 'from-b.png', type: 'image/png', size: 2 })
+    sync(a, b)
+
+    for (const doc of [a, b]) {
+      const ids = snapshotSheet(doc)
+        .artists[0].files.map((f) => f.id)
+        .sort()
+      expect(ids).toEqual(['fa', 'fb'])
+    }
   })
 })
 

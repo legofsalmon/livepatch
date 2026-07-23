@@ -1,9 +1,103 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import type * as Y from 'yjs'
-import { addArtist, removeArtist, updateArtist } from '../model/sheetDoc'
+import { addArtist, addArtistFile, removeArtist, removeArtistFile, updateArtist } from '../model/sheetDoc'
 import type { Artist, SheetSnapshot } from '../model/types'
+import {
+  attachmentUrl,
+  canUseAttachments,
+  deleteAttachment,
+  formatBytes,
+  MAX_ATTACHMENT_BYTES,
+  uploadAttachment,
+} from '../store/files'
+import { useSyncStatus } from '../store/useSync'
 import { useDraft } from './useDraft'
+import { useToasts } from './toastContext'
 import styles from './Manager.module.scss'
+
+const ACCEPTED_TYPE = (type: string) => type.startsWith('image/') || type === 'application/pdf'
+
+function ArtistFiles({ doc, artist }: { doc: Y.Doc; artist: Artist }) {
+  const { addToast } = useToasts()
+  const status = useSyncStatus()
+  const [uploading, setUploading] = useState(false)
+  const enabled = status === 'connected' && canUseAttachments()
+
+  const handleUpload = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return
+    setUploading(true)
+    try {
+      for (const file of Array.from(fileList)) {
+        if (!ACCEPTED_TYPE(file.type)) {
+          addToast('Skipped file', `"${file.name}" is not an image or PDF`, 'warning')
+          continue
+        }
+        if (file.size > MAX_ATTACHMENT_BYTES) {
+          addToast('File too large', `"${file.name}" exceeds ${formatBytes(MAX_ATTACHMENT_BYTES)}`, 'warning')
+          continue
+        }
+        const meta = await uploadAttachment(file)
+        addArtistFile(doc, artist.id, meta)
+      }
+    } catch (error) {
+      addToast('Upload failed', error instanceof Error ? error.message : 'Unknown error', 'error')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemove = (fileId: string) => {
+    removeArtistFile(doc, artist.id, fileId)
+    void deleteAttachment(fileId)
+  }
+
+  return (
+    <div className={styles.notes}>
+      <label htmlFor={`artist-files-${artist.id}`}>Files (images & PDFs):</label>
+      <input
+        id={`artist-files-${artist.id}`}
+        type="file"
+        accept="image/*,.pdf"
+        multiple
+        disabled={!enabled || uploading}
+        onChange={(e) => {
+          void handleUpload(e.target.files)
+          e.target.value = ''
+        }}
+      />
+      {!enabled && (
+        <p className={styles.fileHint}>
+          Attachments are stored on the relay — connect sync to add or open files.
+        </p>
+      )}
+      {artist.files.length > 0 && (
+        <ul className={styles.fileList}>
+          {artist.files.map((file) => (
+            <li key={file.id} className={styles.fileItem}>
+              {enabled ? (
+                <a href={attachmentUrl(file.id)} target="_blank" rel="noreferrer">
+                  {file.name}
+                </a>
+              ) : (
+                <span>{file.name}</span>
+              )}
+              <span className={styles.fileSize}>{formatBytes(file.size)}</span>
+              <button
+                type="button"
+                className={styles.removeFileButton}
+                onClick={() => handleRemove(file.id)}
+                aria-label={`Remove ${file.name}`}
+                title="Remove file"
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
 
 function ArtistRow({ doc, artist, removable }: { doc: Y.Doc; artist: Artist; removable: boolean }) {
   const name = useDraft(artist.name, (next) =>
@@ -61,6 +155,7 @@ function ArtistRow({ doc, artist, removable }: { doc: Y.Doc; artist: Artist; rem
           {...notes.inputProps}
         />
       </div>
+      <ArtistFiles doc={doc} artist={artist} />
     </div>
   )
 }

@@ -217,3 +217,60 @@
   display: flex;
   justify-content: flex-end;
 }
+
+.fileHint {
+  font-size: 0.78rem;
+  color: $color-muted;
+  margin-top: 4px;
+}
+
+.fileList {
+  list-style: none;
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fileItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  background: $color-surface;
+  border: 1px solid $color-border-soft;
+  border-radius: $radius-small;
+  padding: 5px 8px;
+
+  a {
+    color: $color-primary;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+.fileSize {
+  color: $color-muted;
+  font-size: 0.75rem;
+  margin-left: auto;
+}
+
+.removeFileButton {
+  border: none;
+  background: none;
+  color: $color-muted;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+
+  &:hover {
+    color: $color-danger;
+  }
+}

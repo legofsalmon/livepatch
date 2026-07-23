@@ -16,12 +16,21 @@ export interface Channel {
   label: string
 }
 
+/** Metadata for a file stored on the relay; the bytes live there, not in the doc. */
+export interface ArtistFile {
+  id: string
+  name: string
+  type: string
+  size: number
+}
+
 export interface Artist {
   id: string
   name: string
   startTime: string
   endTime: string
   notes: string
+  files: ArtistFile[]
 }
 
 export interface SubBox {
