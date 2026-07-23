@@ -150,5 +150,24 @@
 .gridArea {
   flex: 1;
   overflow: auto;
-  padding: 12px;
+  // No top/side padding: the sticky header rows pin to the scrollport edge,
+  // and any padding would let rows peek out above them while scrolling.
+  padding: 0;
+}
+
+@media print {
+  .app {
+    height: auto;
+    background: #fff;
+  }
+
+  .headerToggle,
+  .appHeader {
+    display: none;
+  }
+
+  .gridArea {
+    overflow: visible;
+    padding: 0;
+  }
 }

@@ -6,6 +6,20 @@ import { useToasts } from './toastContext'
 import SyncSettingsDialog from './SyncSettingsDialog'
 import styles from './SheetSelector.module.scss'
 
+const formatLastEdited = (iso: string): string | null => {
+  if (!iso) return null
+  const then = new Date(iso).getTime()
+  if (!Number.isFinite(then)) return null
+  const mins = Math.round((Date.now() - then) / 60000)
+  if (mins < 1) return 'Edited just now'
+  if (mins < 60) return `Edited ${mins} min ago`
+  const hours = Math.round(mins / 60)
+  if (hours < 24) return `Edited ${hours} h ago`
+  const days = Math.round(hours / 24)
+  if (days < 7) return `Edited ${days} d ago`
+  return `Edited ${new Date(iso).toLocaleDateString()}`
+}
+
 export default function SheetSelector({ onOpen }: { onOpen: (sheetId: string) => void }) {
   const { entries, loaded } = useSheetIndex()
   const { addToast } = useToasts()
@@ -103,6 +117,9 @@ export default function SheetSelector({ onOpen }: { onOpen: (sheetId: string) =>
                   {entry.stage && <span>{entry.stage}</span>}
                   {entry.date && <span>{isoToDisplay(entry.date)}</span>}
                 </span>
+                {formatLastEdited(entry.lastModified) && (
+                  <span className={styles.cardEdited}>{formatLastEdited(entry.lastModified)}</span>
+                )}
               </button>
               <button
                 type="button"

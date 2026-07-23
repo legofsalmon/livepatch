@@ -90,3 +90,11 @@ export const emptyPatchEntry = (): PatchEntry => ({
   micDi: '',
   stand: '',
 })
+
+/** True when the entry holds any user content (text or a sub-box reference). */
+export const patchEntryHasContent = (entry: PatchEntry | undefined): boolean => {
+  if (!entry) return false
+  return Object.entries(entry).some(([k, v]) =>
+    k === 'subBoxId' ? v !== null : typeof v === 'string' && v !== ''
+  )
+}

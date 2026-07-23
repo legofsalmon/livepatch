@@ -1,4 +1,4 @@
-import { Fragment } from 'react'
+import { Fragment, useCallback, useRef } from 'react'
 import type * as Y from 'yjs'
 import {
   addChannel,
@@ -10,6 +10,7 @@ import {
 import {
   PATCH_FIELDS,
   PATCH_FIELD_LABELS,
+  patchEntryHasContent,
   patchKey,
   type Channel,
   type SheetSnapshot,
@@ -32,12 +33,25 @@ function ChannelHeader({
   doc,
   channel,
   removable,
+  hasContent,
 }: {
   doc: Y.Doc
   channel: Channel
   removable: boolean
+  hasContent: boolean
 }) {
   const draft = useDraft(channel.label, (next) => renameChannel(doc, channel.id, next.trim()))
+
+  const handleRemove = () => {
+    if (
+      hasContent &&
+      !window.confirm(`Remove channel "${channel.label}"? Its patch data will be deleted.`)
+    ) {
+      return
+    }
+    removeChannel(doc, channel.id)
+  }
+
   return (
     <th scope="row" className={styles.channelHeader}>
       <div className={styles.channelHeaderInner}>
@@ -58,7 +72,7 @@ function ChannelHeader({
           </button>
           <button
             type="button"
-            onClick={() => removeChannel(doc, channel.id)}
+            onClick={handleRemove}
             disabled={!removable}
             title={removable ? 'Remove channel' : 'At least one channel is required'}
             aria-label={`Remove channel ${channel.label}`}
@@ -82,17 +96,30 @@ export default function PatchGrid({
 }) {
   const { channels, artists, subBoxes, patches } = snapshot
   const remotePeers = useRemotePeers(docName)
+  const wrapperRef = useRef<HTMLDivElement>(null)
 
   const remoteEditors: Record<string, { name: string; color: string }> = {}
   for (const peer of remotePeers) {
     if (peer.editingCell) remoteEditors[peer.editingCell] = { name: peer.name, color: peer.color }
   }
 
+  // Enter/Shift+Enter moves down/up within the same column, spreadsheet-style.
+  const navigate = useCallback((gridPos: string, rowDelta: number) => {
+    const [row, col] = gridPos.split(':').map(Number)
+    const target = wrapperRef.current?.querySelector<HTMLInputElement>(
+      `input[data-grid-pos="${row + rowDelta}:${col}"]`
+    )
+    if (target) {
+      target.focus()
+      target.select()
+    }
+  }, [])
+
   const subBoxOptions =
     subBoxes.length > 0 ? subBoxes.map(subBoxDisplayName) : [...SUB_BOX_FALLBACK_SUGGESTIONS]
 
   return (
-    <div className={styles.wrapper}>
+    <div className={styles.wrapper} ref={wrapperRef}>
       {/* Shared datalists — one instance per field, referenced by every cell */}
       <datalist id={DATALIST_IDS.subBox}>
         {subBoxOptions.map((option) => (
@@ -110,7 +137,7 @@ export default function PatchGrid({
       <table className={styles.table}>
         <thead>
           <tr>
-            <td className={styles.cornerCell} aria-hidden="true" />
+            <td className={`${styles.cornerCell} ${styles.stickyCorner}`} aria-hidden="true" />
             {artists.map((artist, index) => (
               <th key={artist.id} colSpan={PATCH_FIELDS.length} className={styles.artistHeader}>
                 <div className={styles.artistHeaderInner}>
@@ -133,7 +160,7 @@ export default function PatchGrid({
             ))}
           </tr>
           <tr>
-            <th scope="col" className={styles.fieldHeader}>
+            <th scope="col" className={`${styles.fieldHeader} ${styles.stickyCorner}`}>
               Ch
             </th>
             {artists.map((artist) => (
@@ -148,12 +175,19 @@ export default function PatchGrid({
           </tr>
         </thead>
         <tbody>
-          {channels.map((channel) => (
+          {channels.map((channel, rowIndex) => (
             <tr key={channel.id}>
-              <ChannelHeader doc={doc} channel={channel} removable={channels.length > 1} />
-              {artists.map((artist) => (
+              <ChannelHeader
+                doc={doc}
+                channel={channel}
+                removable={channels.length > 1}
+                hasContent={artists.some((artist) =>
+                  patchEntryHasContent(patches[patchKey(artist.id, channel.id)])
+                )}
+              />
+              {artists.map((artist, artistIndex) => (
                 <Fragment key={artist.id}>
-                  {PATCH_FIELDS.map((field) => (
+                  {PATCH_FIELDS.map((field, fieldIndex) => (
                     <PatchCell
                       key={field}
                       doc={doc}
@@ -166,6 +200,8 @@ export default function PatchGrid({
                       datalistId={DATALIST_IDS[field]}
                       label={`${artist.name}, channel ${channel.label}, ${PATCH_FIELD_LABELS[field]}`}
                       remoteEditor={remoteEditors[`${artist.id}:${channel.id}:${field}`]}
+                      gridPos={`${rowIndex}:${artistIndex * PATCH_FIELDS.length + fieldIndex}`}
+                      onNavigate={navigate}
                     />
                   ))}
                 </Fragment>

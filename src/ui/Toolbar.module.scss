@@ -105,3 +105,18 @@
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+@media print {
+  .toolbar {
+    border-bottom: 2px solid #000;
+  }
+
+  .buttons {
+    display: none;
+  }
+
+  .titleInput,
+  .field input {
+    border: none;
+  }
+}

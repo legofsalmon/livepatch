@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useSheet } from '../store/hooks'
 import { sheetDocName } from '../store/docManager'
 import { useRemotePeers, useSyncPeers, useSyncStatus } from '../store/useSync'
@@ -67,6 +67,14 @@ export default function SheetView({ sheetId, onClose }: { sheetId: string; onClo
   const [showSubBoxes, setShowSubBoxes] = useState(false)
   const [showLineup, setShowLineup] = useState(false)
   const [showSyncSettings, setShowSyncSettings] = useState(false)
+
+  const title = snapshot?.meta.title
+  useEffect(() => {
+    document.title = title ? `${title} — Live Patch` : 'Live Patch'
+    return () => {
+      document.title = 'Live Patch'
+    }
+  }, [title])
 
   if (!doc || !snapshot || !loaded) {
     return <div className={styles.loading}>Loading sheet…</div>

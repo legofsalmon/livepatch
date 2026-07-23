@@ -6,8 +6,14 @@ import { useRef, useState } from 'react'
  * reverts on Escape. While a draft is active, remote updates do NOT overwrite
  * what the user is typing (v1 lost in-progress edits this way) — they appear
  * once the field is left.
+ *
+ * `multiline` (for textareas) keeps Enter as a newline; commit is blur-only.
  */
-export function useDraft(value: string, commit: (next: string) => void) {
+export function useDraft(
+  value: string,
+  commit: (next: string) => void,
+  options?: { multiline?: boolean }
+) {
   const [draft, setDraft] = useState<string | null>(null)
   // Blur fires synchronously on .blur() before React re-renders, so the
   // handler reads the live ref rather than a stale closure value.
@@ -31,7 +37,7 @@ export function useDraft(value: string, commit: (next: string) => void) {
         set(null)
       },
       onKeyDown: (e: React.KeyboardEvent<HTMLElement>) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        if (e.key === 'Enter' && !options?.multiline) {
           ;(e.target as HTMLElement).blur()
         } else if (e.key === 'Escape') {
           set(null)

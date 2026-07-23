@@ -10,6 +10,7 @@ import {
   MAX_ATTACHMENT_BYTES,
   uploadAttachment,
 } from '../store/files'
+import { patchEntryHasContent } from '../model/types'
 import { useSyncStatus } from '../store/useSync'
 import { useDraft } from './useDraft'
 import { useToasts } from './toastContext'
@@ -99,11 +100,33 @@ function ArtistFiles({ doc, artist }: { doc: Y.Doc; artist: Artist }) {
   )
 }
 
-function ArtistRow({ doc, artist, removable }: { doc: Y.Doc; artist: Artist; removable: boolean }) {
+function ArtistRow({
+  doc,
+  artist,
+  removable,
+  hasContent,
+}: {
+  doc: Y.Doc
+  artist: Artist
+  removable: boolean
+  hasContent: boolean
+}) {
   const name = useDraft(artist.name, (next) =>
     updateArtist(doc, artist.id, { name: next.trim() || artist.name })
   )
-  const notes = useDraft(artist.notes, (next) => updateArtist(doc, artist.id, { notes: next }))
+  const notes = useDraft(artist.notes, (next) => updateArtist(doc, artist.id, { notes: next }), {
+    multiline: true,
+  })
+
+  const handleRemove = () => {
+    if (
+      hasContent &&
+      !window.confirm(`Remove "${artist.name}"? Their patch data and files will be deleted.`)
+    ) {
+      return
+    }
+    removeArtist(doc, artist.id)
+  }
 
   return (
     <div className={styles.item}>
@@ -118,7 +141,7 @@ function ArtistRow({ doc, artist, removable }: { doc: Y.Doc; artist: Artist; rem
         <button
           type="button"
           className={styles.removeButton}
-          onClick={() => removeArtist(doc, artist.id)}
+          onClick={handleRemove}
           disabled={!removable}
           aria-label={`Remove ${artist.name}`}
           title={removable ? 'Remove artist' : 'At least one artist is required'}
@@ -204,6 +227,12 @@ export default function LineupManager({
               doc={doc}
               artist={artist}
               removable={snapshot.artists.length > 1}
+              hasContent={
+                artist.files.length > 0 ||
+                Object.entries(snapshot.patches).some(
+                  ([key, entry]) => key.startsWith(`${artist.id}:`) && patchEntryHasContent(entry)
+                )
+              }
             />
           ))}
         </div>

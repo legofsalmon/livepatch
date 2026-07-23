@@ -16,6 +16,8 @@ export default function PatchCell({
   datalistId,
   label,
   remoteEditor,
+  gridPos,
+  onNavigate,
 }: {
   doc: Y.Doc
   docName: string
@@ -27,6 +29,9 @@ export default function PatchCell({
   datalistId?: string
   label: string
   remoteEditor?: { name: string; color: string }
+  /** "row:col" position used for keyboard navigation between cells. */
+  gridPos: string
+  onNavigate: (gridPos: string, rowDelta: number) => void
 }) {
   const resolved = entry ?? emptyPatchEntry()
   const displayValue = field === 'subBox' ? patchSubBoxDisplay(resolved, subBoxes) : resolved[field]
@@ -40,7 +45,7 @@ export default function PatchCell({
   })
 
   const cellId = `${artistId}:${channelId}:${field}`
-  const { onFocus, onBlur, ...inputProps } = draft.inputProps
+  const { onFocus, onBlur, onKeyDown, ...inputProps } = draft.inputProps
 
   const stripeColor =
     field === 'subBox' && resolved.subBoxId
@@ -68,7 +73,11 @@ export default function PatchCell({
           onBlur()
           syncManager.setEditingCell(docName, null)
         }}
-        data-cell={cellId}
+        onKeyDown={(e) => {
+          onKeyDown(e) // Enter commits via blur; Escape reverts
+          if (e.key === 'Enter') onNavigate(gridPos, e.shiftKey ? -1 : 1)
+        }}
+        data-grid-pos={gridPos}
         {...inputProps}
       />
     </td>
