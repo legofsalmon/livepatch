@@ -100,9 +100,17 @@ scripts/            # PWA icon generator (no external tooling)
 ## Testing
 
 `npm test` runs the Vitest suite over the domain model: sheet operations, sub-box
-reference resolution, CSV escaping/layout, date handling, and — most importantly —
-concurrent-edit merge scenarios (two devices editing offline, structural edits racing
-cell edits, same-cell conflicts converging).
+reference resolution, CSV escaping/layout, date handling, undo/redo semantics, and —
+most importantly — concurrent-edit merge scenarios (two devices editing offline,
+structural edits racing cell edits, same-cell conflicts converging).
+
+`npm run test:e2e` (after `npm run build` and `npm ci --prefix server`) runs the
+Playwright suite against the real relay in box mode: reload persistence, zero-config
+two-device sync, presence, token gating, CSV download, and undo across devices. In a
+sandbox with a preinstalled Chromium, set `PW_CHROMIUM=<path-to-chrome>`.
+
+Both suites (plus format, lint, and build) run in CI on every pull request
+(`.github/workflows/ci.yml`).
 
 ## License
 

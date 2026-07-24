@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react'
 import type * as Y from 'yjs'
-import { addArtist, addArtistFile, removeArtist, removeArtistFile, updateArtist } from '../model/sheetDoc'
+import {
+  addArtist,
+  addArtistFile,
+  removeArtist,
+  removeArtistFile,
+  updateArtist,
+} from '../model/sheetDoc'
 import type { Artist, SheetSnapshot } from '../model/types'
 import {
   attachmentUrl,
@@ -34,7 +40,11 @@ function ArtistFiles({ doc, artist }: { doc: Y.Doc; artist: Artist }) {
           continue
         }
         if (file.size > MAX_ATTACHMENT_BYTES) {
-          addToast('File too large', `"${file.name}" exceeds ${formatBytes(MAX_ATTACHMENT_BYTES)}`, 'warning')
+          addToast(
+            'File too large',
+            `"${file.name}" exceeds ${formatBytes(MAX_ATTACHMENT_BYTES)}`,
+            'warning'
+          )
           continue
         }
         const meta = await uploadAttachment(file)
