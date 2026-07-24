@@ -9,6 +9,11 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      workbox: {
+        // Server-rendered/relay routes must never fall back to the cached app
+        // shell on devices that have the service worker installed.
+        navigateFallbackDenylist: [/^\/connect/, /^\/files\//, /^\/healthz/],
+      },
       manifest: {
         name: 'Live Patch',
         short_name: 'Live Patch',

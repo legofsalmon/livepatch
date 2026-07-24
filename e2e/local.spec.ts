@@ -34,6 +34,15 @@ test('sheet data survives a reload via IndexedDB', async ({ browser }) => {
   await expect(cell(page, 'Artist 1', 'Kick', 'Sub-box')).toHaveValue('Box A (MSC)')
 })
 
+test('the /connect page serves a QR code pointing at the box', async ({ browser }) => {
+  const page = await newDevice(browser)
+  const response = await page.request.get('/connect')
+  expect(response.status()).toBe(200)
+  const body = await response.text()
+  expect(body).toContain('<svg')
+  expect(body).toContain('Open Live Patch on this machine')
+})
+
 test('CSV export downloads a file named after the sheet', async ({ browser }) => {
   const page = await newDevice(browser)
   await createSheet(page, uniqueName('Export Fest'))

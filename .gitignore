@@ -30,3 +30,6 @@ server/data/
 # Playwright output
 playwright-report/
 test-results/
+
+# SEA build output
+build/

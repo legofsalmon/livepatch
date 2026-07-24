@@ -54,8 +54,10 @@ The app works immediately with no configuration — sheets are saved on the devi
 
 The recommended setup is the **festival box** — one machine on the venue network that
 serves the app, relays sync, and stores attachments; devices that load the app from it
-get sync configured automatically. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for the
-Docker one-liner, the systemd alternative, and the on-site runbook.
+get sync configured automatically. The easiest install is the **single-file app from
+[Releases](https://github.com/legofsalmon/livepatch/releases)**: download, double-click,
+scan the QR code it shows. See **[DEPLOYMENT.md](DEPLOYMENT.md)** for that, the Docker
+and systemd alternatives, and the on-site runbook.
 
 For ad-hoc use, run the relay directly:
 
