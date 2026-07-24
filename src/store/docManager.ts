@@ -1,6 +1,13 @@
 import * as Y from 'yjs'
 import { IndexeddbPersistence } from 'y-indexeddb'
-import { createSheetUndoManager, getSheetRoots, initSheet, LOCAL_ORIGIN } from '../model/sheetDoc'
+import {
+  buildImportedSheet,
+  createSheetUndoManager,
+  getSheetRoots,
+  initSheet,
+  LOCAL_ORIGIN,
+  type ImportedSheetData,
+} from '../model/sheetDoc'
 import { removeIndexEntry, upsertIndexEntry } from '../model/indexDoc'
 import { syncManager } from './sync'
 
@@ -102,6 +109,19 @@ export const createSheet = (title: string): { sheetId: string; handle: DocHandle
   const handle = openSheet(sheetId)
   initSheet(handle.doc, { title })
   // The default structure is the sheet's baseline, not an undoable edit.
+  handle.undoManager?.clear()
+  return { sheetId, handle }
+}
+
+/** Create a new sheet from imported CSV data (see model/importCsv.ts). */
+export const createSheetFromImport = (
+  title: string,
+  data: ImportedSheetData
+): { sheetId: string; handle: DocHandle } => {
+  const sheetId = crypto.randomUUID()
+  const handle = openSheet(sheetId)
+  buildImportedSheet(handle.doc, data, { title })
+  // Imported content is the sheet's baseline, not an undoable edit.
   handle.undoManager?.clear()
   return { sheetId, handle }
 }

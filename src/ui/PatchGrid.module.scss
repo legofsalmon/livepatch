@@ -199,6 +199,11 @@ tbody tr:nth-child(even) {
   }
 }
 
+// Find-box highlight — wins over zebra striping, loses to focus styling.
+.matchCell {
+  background: #ffe999;
+}
+
 .gridActions {
   margin: 10px 12px 16px;
 

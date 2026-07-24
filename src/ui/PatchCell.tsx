@@ -18,6 +18,9 @@ export default function PatchCell({
   remoteEditor,
   gridPos,
   onNavigate,
+  onPasteRange,
+  valueAbove,
+  isMatch,
 }: {
   doc: Y.Doc
   docName: string
@@ -32,17 +35,24 @@ export default function PatchCell({
   /** "row:col" position used for keyboard navigation between cells. */
   gridPos: string
   onNavigate: (gridPos: string, rowDelta: number) => void
+  /** Multi-cell clipboard text (contains tab/newline) pasted while focused here. */
+  onPasteRange: (gridPos: string, text: string) => void
+  /** Display value of the same field one channel up — Ctrl/Cmd+D fills it in. */
+  valueAbove?: string
+  isMatch?: boolean
 }) {
   const resolved = entry ?? emptyPatchEntry()
   const displayValue = field === 'subBox' ? patchSubBoxDisplay(resolved, subBoxes) : resolved[field]
 
-  const draft = useDraft(displayValue, (next) => {
+  const commitValue = (next: string) => {
     if (field === 'subBox') {
       setPatchSubBox(doc, artistId, channelId, next.trim())
     } else {
       setPatchField(doc, artistId, channelId, field, next)
     }
-  })
+  }
+
+  const draft = useDraft(displayValue, commitValue)
 
   const cellId = `${artistId}:${channelId}:${field}`
   const { onBlur, onKeyDown, ...inputProps } = draft.inputProps
@@ -60,7 +70,7 @@ export default function PatchCell({
     <td className={styles.cell}>
       <input
         type="text"
-        className={styles.cellInput}
+        className={`${styles.cellInput} ${isMatch ? styles.matchCell : ''}`}
         style={Object.keys(style).length > 0 ? style : undefined}
         aria-label={label}
         list={datalistId}
@@ -72,11 +82,29 @@ export default function PatchCell({
           onBlur()
           syncManager.setEditingCell(docName, null)
         }}
+        onPaste={(e) => {
+          const text = e.clipboardData.getData('text/plain')
+          if (text.includes('\t') || text.includes('\n')) {
+            e.preventDefault()
+            draft.reset()
+            onPasteRange(gridPos, text)
+          }
+        }}
         onKeyDown={(e) => {
+          if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd') {
+            // Sheets muscle memory: fill down from the cell above.
+            e.preventDefault()
+            if (valueAbove !== undefined) {
+              draft.reset()
+              commitValue(valueAbove)
+            }
+            return
+          }
           onKeyDown(e) // Enter commits via blur; Escape reverts
           if (e.key === 'Enter') onNavigate(gridPos, e.shiftKey ? -1 : 1)
         }}
         data-grid-pos={gridPos}
+        data-cell={cellId}
         {...inputProps}
       />
     </td>

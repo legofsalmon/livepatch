@@ -32,6 +32,8 @@ export function useDraft(
   return {
     value: draft ?? value,
     editing: draft !== null,
+    /** Discard any in-progress draft (e.g. after an external write to the field). */
+    reset: () => set(null),
     inputProps: {
       value: draft ?? value,
       'data-dirty': draft !== null ? 'true' : undefined,

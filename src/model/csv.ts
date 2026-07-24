@@ -8,6 +8,56 @@ export const escapeCsvField = (value: string): string => {
 }
 
 /**
+ * Parse delimiter-separated text (CSV files, or the TSV Google Sheets puts on
+ * the clipboard) honouring RFC-4180-style quoting: quoted fields may contain
+ * the delimiter, newlines, and doubled quotes. Handles CRLF and a UTF-8 BOM.
+ */
+export const parseDelimited = (text: string, delimiter: ',' | '\t'): string[][] => {
+  const input = text.replace(/^\uFEFF/, '')
+  const rows: string[][] = []
+  let row: string[] = []
+  let field = ''
+  let inQuotes = false
+
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]
+    if (inQuotes) {
+      if (ch === '"') {
+        if (input[i + 1] === '"') {
+          field += '"'
+          i++
+        } else {
+          inQuotes = false
+        }
+      } else {
+        field += ch
+      }
+    } else if (ch === '"' && field === '') {
+      inQuotes = true
+    } else if (ch === delimiter) {
+      row.push(field)
+      field = ''
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && input[i + 1] === '\n') i++
+      row.push(field)
+      rows.push(row)
+      row = []
+      field = ''
+    } else {
+      field += ch
+    }
+  }
+  if (field !== '' || row.length > 0) {
+    row.push(field)
+    rows.push(row)
+  }
+  return rows
+}
+
+export const parseCsv = (text: string): string[][] => parseDelimited(text, ',')
+export const parseTsv = (text: string): string[][] => parseDelimited(text, '\t')
+
+/**
  * Render a sheet as CSV. Two header rows: the artist names (each spanning
  * their five field columns) and the field labels; then one row per channel.
  * CRLF line endings and a UTF-8 BOM keep Excel happy.

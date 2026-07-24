@@ -1,7 +1,9 @@
-import { useState } from 'react'
-import { createSheet, deleteSheet } from '../store/docManager'
+import { useRef, useState } from 'react'
+import { createSheet, createSheetFromImport, deleteSheet } from '../store/docManager'
 import { useSheetIndex } from '../store/hooks'
 import { isoToDisplay } from '../model/date'
+import { parseCsv } from '../model/csv'
+import { sheetFromCsv } from '../model/importCsv'
 import { useToasts } from './toastContext'
 import SyncSettingsDialog from './SyncSettingsDialog'
 import styles from './SheetSelector.module.scss'
@@ -26,6 +28,29 @@ export default function SheetSelector({ onOpen }: { onOpen: (sheetId: string) =>
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [showSyncSettings, setShowSyncSettings] = useState(false)
+  const importRef = useRef<HTMLInputElement>(null)
+
+  const handleImportFile = async (file: File | undefined) => {
+    if (!file) return
+    try {
+      const rows = parseCsv(await file.text())
+      const { data, skippedColumns } = sheetFromCsv(rows)
+      if (data.channels.length === 0) {
+        addToast('Import failed', 'No rows found in that CSV', 'error')
+        return
+      }
+      const title = file.name.replace(/\.csv$/i, '').trim() || 'Imported Sheet'
+      const { sheetId } = createSheetFromImport(title, data)
+      const summary = [`${data.channels.length} channels, ${data.artists.length} artist(s)`]
+      if (skippedColumns.length > 0) {
+        summary.push(`skipped columns: ${skippedColumns.join(', ')}`)
+      }
+      addToast('Imported', summary.join(' · '), skippedColumns.length > 0 ? 'warning' : 'success')
+      onOpen(sheetId)
+    } catch (error) {
+      addToast('Import failed', error instanceof Error ? error.message : 'Unreadable file', 'error')
+    }
+  }
 
   const handleCreate = () => {
     if (!name.trim()) return
@@ -90,9 +115,30 @@ export default function SheetSelector({ onOpen }: { onOpen: (sheetId: string) =>
             </button>
           </form>
         ) : (
-          <button type="button" className={styles.createButton} onClick={() => setCreating(true)}>
-            + New Sheet
-          </button>
+          <>
+            <button type="button" className={styles.createButton} onClick={() => setCreating(true)}>
+              + New Sheet
+            </button>
+            <button
+              type="button"
+              className={styles.importButton}
+              onClick={() => importRef.current?.click()}
+              title="Import a CSV exported from Google Sheets, Excel, or Live Patch"
+            >
+              ⇪ Import CSV
+            </button>
+            <input
+              ref={importRef}
+              type="file"
+              accept=".csv,text/csv"
+              className={styles.hiddenFile}
+              aria-label="Import CSV file"
+              onChange={(e) => {
+                void handleImportFile(e.target.files?.[0])
+                e.target.value = ''
+              }}
+            />
+          </>
         )}
       </div>
 

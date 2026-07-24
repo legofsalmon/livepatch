@@ -3,10 +3,14 @@ import type * as Y from 'yjs'
 import {
   addChannel,
   copyPatchesFromArtist,
+  pasteGrid,
+  patchSubBoxDisplay,
   removeChannel,
   renameChannel,
   subBoxDisplayName,
+  type PasteColumn,
 } from '../model/sheetDoc'
+import { parseTsv } from '../model/csv'
 import {
   PATCH_FIELDS,
   PATCH_FIELD_LABELS,
@@ -19,6 +23,7 @@ import { FIELD_SUGGESTIONS, SUB_BOX_FALLBACK_SUGGESTIONS } from '../model/consta
 import { useRemotePeers } from '../store/useSync'
 import PatchCell from './PatchCell'
 import { useDraft } from './useDraft'
+import { useToasts } from './toastContext'
 import styles from './PatchGrid.module.scss'
 
 const DATALIST_IDS: Record<string, string> = {
@@ -34,11 +39,13 @@ function ChannelHeader({
   channel,
   removable,
   hasContent,
+  isMatch,
 }: {
   doc: Y.Doc
   channel: Channel
   removable: boolean
   hasContent: boolean
+  isMatch?: boolean
 }) {
   const draft = useDraft(channel.label, (next) => renameChannel(doc, channel.id, next.trim()))
 
@@ -57,7 +64,7 @@ function ChannelHeader({
       <div className={styles.channelHeaderInner}>
         <input
           type="text"
-          className={styles.channelInput}
+          className={`${styles.channelInput} ${isMatch ? styles.matchCell : ''}`}
           aria-label={`Channel ${channel.label} name`}
           {...draft.inputProps}
         />
@@ -89,14 +96,44 @@ export default function PatchGrid({
   doc,
   docName,
   snapshot,
+  matchedCells,
+  matchedChannels,
 }: {
   doc: Y.Doc
   docName: string
   snapshot: SheetSnapshot
+  /** Cell ids (`artistId:channelId:field`) highlighted by the find box. */
+  matchedCells?: Set<string>
+  /** Channel ids whose label matches the find query. */
+  matchedChannels?: Set<string>
 }) {
   const { channels, artists, subBoxes, patches } = snapshot
   const remotePeers = useRemotePeers(docName)
   const wrapperRef = useRef<HTMLDivElement>(null)
+  const { addToast } = useToasts()
+
+  // A rectangular block pasted from Google Sheets (TSV on the clipboard):
+  // fill right/down from the focused cell, appending channels as needed.
+  const handlePasteRange = useCallback(
+    (gridPos: string, text: string) => {
+      const rows = parseTsv(text)
+      if (rows.length === 0) return
+      const [rowIndex, colIndex] = gridPos.split(':').map(Number)
+      const startChannel = channels[rowIndex]
+      if (!startChannel) return
+      const allColumns: PasteColumn[] = artists.flatMap((artist) =>
+        PATCH_FIELDS.map((field) => ({ artistId: artist.id, field }))
+      )
+      const columns = allColumns.slice(colIndex)
+      const widest = Math.max(...rows.map((row) => row.length))
+      const { addedChannels, writtenCells } = pasteGrid(doc, startChannel.id, columns, rows)
+      const parts = [`Pasted ${writtenCells} cell${writtenCells === 1 ? '' : 's'}`]
+      if (addedChannels > 0) parts.push(`added ${addedChannels} channel(s)`)
+      if (widest > columns.length) parts.push(`${widest - columns.length} column(s) didn't fit`)
+      addToast('Paste', parts.join(' · '), widest > columns.length ? 'warning' : 'success')
+    },
+    [doc, channels, artists, addToast]
+  )
 
   const remoteEditors: Record<string, { name: string; color: string }> = {}
   for (const peer of remotePeers) {
@@ -184,26 +221,44 @@ export default function PatchGrid({
                 hasContent={artists.some((artist) =>
                   patchEntryHasContent(patches[patchKey(artist.id, channel.id)])
                 )}
+                isMatch={matchedChannels?.has(channel.id)}
               />
               {artists.map((artist, artistIndex) => (
                 <Fragment key={artist.id}>
-                  {PATCH_FIELDS.map((field, fieldIndex) => (
-                    <PatchCell
-                      key={field}
-                      doc={doc}
-                      docName={docName}
-                      artistId={artist.id}
-                      channelId={channel.id}
-                      field={field}
-                      entry={patches[patchKey(artist.id, channel.id)]}
-                      subBoxes={subBoxes}
-                      datalistId={DATALIST_IDS[field]}
-                      label={`${artist.name}, channel ${channel.label}, ${PATCH_FIELD_LABELS[field]}`}
-                      remoteEditor={remoteEditors[`${artist.id}:${channel.id}:${field}`]}
-                      gridPos={`${rowIndex}:${artistIndex * PATCH_FIELDS.length + fieldIndex}`}
-                      onNavigate={navigate}
-                    />
-                  ))}
+                  {PATCH_FIELDS.map((field, fieldIndex) => {
+                    const entryAbove =
+                      rowIndex > 0
+                        ? patches[patchKey(artist.id, channels[rowIndex - 1].id)]
+                        : undefined
+                    const valueAbove =
+                      rowIndex > 0
+                        ? field === 'subBox'
+                          ? entryAbove
+                            ? patchSubBoxDisplay(entryAbove, subBoxes)
+                            : ''
+                          : (entryAbove?.[field] ?? '')
+                        : undefined
+                    return (
+                      <PatchCell
+                        key={field}
+                        doc={doc}
+                        docName={docName}
+                        artistId={artist.id}
+                        channelId={channel.id}
+                        field={field}
+                        entry={patches[patchKey(artist.id, channel.id)]}
+                        subBoxes={subBoxes}
+                        datalistId={DATALIST_IDS[field]}
+                        label={`${artist.name}, channel ${channel.label}, ${PATCH_FIELD_LABELS[field]}`}
+                        remoteEditor={remoteEditors[`${artist.id}:${channel.id}:${field}`]}
+                        gridPos={`${rowIndex}:${artistIndex * PATCH_FIELDS.length + fieldIndex}`}
+                        onNavigate={navigate}
+                        onPasteRange={handlePasteRange}
+                        valueAbove={valueAbove}
+                        isMatch={matchedCells?.has(`${artist.id}:${channel.id}:${field}`)}
+                      />
+                    )
+                  })}
                 </Fragment>
               ))}
             </tr>
