@@ -48,6 +48,19 @@ const mapFrom = (obj: Record<string, unknown>): YEntity => {
 
 const transact = (doc: Y.Doc, fn: () => void) => doc.transact(fn, LOCAL_ORIGIN)
 
+/**
+ * Undo/redo across the whole sheet, tracking ONLY this client's edits (every
+ * op above transacts with LOCAL_ORIGIN). Remote updates arrive with other
+ * origins and are never undone — you take back your own change, not a
+ * collaborator's. captureTimeout groups edits landing within one beat; the
+ * blur/Enter commit cadence keeps distinct edits as distinct steps.
+ */
+export const createSheetUndoManager = (doc: Y.Doc): Y.UndoManager =>
+  new Y.UndoManager(Object.values(getSheetRoots(doc)) as Y.AbstractType<unknown>[], {
+    trackedOrigins: new Set([LOCAL_ORIGIN]),
+    captureTimeout: 300,
+  })
+
 const findById = (arr: Y.Array<YEntity>, id: string): { item: YEntity; index: number } | null => {
   for (let i = 0; i < arr.length; i++) {
     const item = arr.get(i)

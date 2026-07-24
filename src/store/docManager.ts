@@ -1,6 +1,6 @@
 import * as Y from 'yjs'
 import { IndexeddbPersistence } from 'y-indexeddb'
-import { getSheetRoots, initSheet, LOCAL_ORIGIN } from '../model/sheetDoc'
+import { createSheetUndoManager, getSheetRoots, initSheet, LOCAL_ORIGIN } from '../model/sheetDoc'
 import { removeIndexEntry, upsertIndexEntry } from '../model/indexDoc'
 import { syncManager } from './sync'
 
@@ -19,6 +19,8 @@ export interface DocHandle {
   doc: Y.Doc
   /** Resolves once IndexedDB has loaded the doc's persisted state. */
   whenLoaded: Promise<void>
+  /** Undo/redo over this client's local edits — sheet docs only, not the index. */
+  undoManager?: Y.UndoManager
   destroy: () => void
 }
 
@@ -64,9 +66,11 @@ export const openSheet = (sheetId: string): DocHandle => {
 
   const inner = openDoc(SHEET_DB_PREFIX + sheetId)
   const { doc } = inner
+  const undoManager = createSheetUndoManager(doc)
 
   const onUpdate = (_update: Uint8Array, origin: unknown) => {
-    if (origin !== LOCAL_ORIGIN) return
+    // Local edits and their undo/redo both count as "modified" for the index.
+    if (origin !== LOCAL_ORIGIN && origin !== undoManager) return
     const { meta } = getSheetRoots(doc)
     upsertIndexEntry(openIndex().doc, sheetId, {
       title: (meta.get('title') as string) ?? 'Untitled Sheet',
@@ -80,8 +84,10 @@ export const openSheet = (sheetId: string): DocHandle => {
   const handle: DocHandle = {
     doc,
     whenLoaded: inner.whenLoaded,
+    undoManager,
     destroy: () => {
       doc.off('update', onUpdate)
+      undoManager.destroy()
       sheetHandles.delete(sheetId)
       inner.destroy()
     },
@@ -95,6 +101,8 @@ export const createSheet = (title: string): { sheetId: string; handle: DocHandle
   const sheetId = crypto.randomUUID()
   const handle = openSheet(sheetId)
   initSheet(handle.doc, { title })
+  // The default structure is the sheet's baseline, not an undoable edit.
+  handle.undoManager?.clear()
   return { sheetId, handle }
 }
 

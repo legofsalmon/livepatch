@@ -2,10 +2,15 @@ import { useRef, useState } from 'react'
 
 /**
  * Local draft editing for a synced value: the input shows the shared value
- * until focused, then holds a local draft that commits on blur/Enter and
- * reverts on Escape. While a draft is active, remote updates do NOT overwrite
- * what the user is typing (v1 lost in-progress edits this way) — they appear
- * once the field is left.
+ * until the user types, then holds a local draft that commits on blur/Enter
+ * and reverts on Escape. While a draft is active, remote updates do NOT
+ * overwrite what the user is typing (v1 lost in-progress edits this way) —
+ * they appear once the field is left.
+ *
+ * The draft begins on the first change (not on focus), so merely focusing a
+ * field doesn't mark it dirty — the doc-level undo shortcut uses the
+ * `data-dirty` marker to leave in-progress text edits to the browser's own
+ * text undo.
  *
  * `multiline` (for textareas) keeps Enter as a newline; commit is blur-only.
  */
@@ -29,7 +34,7 @@ export function useDraft(
     editing: draft !== null,
     inputProps: {
       value: draft ?? value,
-      onFocus: () => set(value),
+      'data-dirty': draft !== null ? 'true' : undefined,
       onChange: (e: { target: { value: string } }) => set(e.target.value),
       onBlur: () => {
         const current = draftRef.current

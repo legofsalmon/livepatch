@@ -45,7 +45,7 @@ export default function PatchCell({
   })
 
   const cellId = `${artistId}:${channelId}:${field}`
-  const { onFocus, onBlur, onKeyDown, ...inputProps } = draft.inputProps
+  const { onBlur, onKeyDown, ...inputProps } = draft.inputProps
 
   const stripeColor =
     field === 'subBox' && resolved.subBoxId
@@ -66,7 +66,6 @@ export default function PatchCell({
         list={datalistId}
         title={remoteEditor ? `${remoteEditor.name} is editing this cell` : undefined}
         onFocus={() => {
-          onFocus()
           syncManager.setEditingCell(docName, cellId)
         }}
         onBlur={() => {

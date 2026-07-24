@@ -41,6 +41,7 @@ export function useSheet(sheetId: string | null): {
   doc: Y.Doc | null
   snapshot: SheetSnapshot | null
   loaded: boolean
+  undoManager: Y.UndoManager | null
 } {
   const [handle, setHandle] = useState<DocHandle | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -68,7 +69,7 @@ export function useSheet(sheetId: string | null): {
 
   const doc = handle?.doc ?? null
   const snapshot = useDocSnapshot(doc, snapshotSheet)
-  return { doc, snapshot, loaded }
+  return { doc, snapshot, loaded, undoManager: handle?.undoManager ?? null }
 }
 
 /** The sheet index (selector list), merged with sheets found only locally. */
