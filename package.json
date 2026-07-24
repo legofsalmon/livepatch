@@ -18,6 +18,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "box": "npm run build && node server/index.cjs",
+    "build:sea": "node scripts/build-sea.mjs",
     "icons": "node scripts/generate-icons.mjs"
   },
   "dependencies": {
@@ -34,10 +36,12 @@
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^6.0.4",
+    "esbuild": "^0.28.1",
     "eslint": "^10.0.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.3",
+    "postject": "^1.0.0-alpha.6",
     "prettier": "^3.9.6",
     "sass": "^1.101.6",
     "typescript": "~5.9.3",
