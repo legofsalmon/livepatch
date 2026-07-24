@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSheet } from '../store/hooks'
 import { sheetDocName } from '../store/docManager'
 import { useRemotePeers, useSyncPeers, useSyncStatus } from '../store/useSync'
+import { useUndoRedo } from '../store/useUndo'
 import Toolbar from './Toolbar'
 import PatchGrid from './PatchGrid'
 import SubBoxManager from './SubBoxManager'
@@ -62,7 +63,8 @@ function SyncStatusChip({
 }
 
 export default function SheetView({ sheetId, onClose }: { sheetId: string; onClose: () => void }) {
-  const { doc, snapshot, loaded } = useSheet(sheetId)
+  const { doc, snapshot, loaded, undoManager } = useSheet(sheetId)
+  const { canUndo, canRedo, undo, redo } = useUndoRedo(undoManager)
   const [showHeaders, setShowHeaders] = useState(true)
   const [showSubBoxes, setShowSubBoxes] = useState(false)
   const [showLineup, setShowLineup] = useState(false)
@@ -75,6 +77,28 @@ export default function SheetView({ sheetId, onClose }: { sheetId: string; onClo
       document.title = 'Live Patch'
     }
   }, [title])
+
+  // Cmd/Ctrl+Z undoes the last committed edit; Shift adds redo (Ctrl+Y too).
+  // A field with an in-progress draft (data-dirty) keeps native text undo.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (!(e.metaKey || e.ctrlKey)) return
+      const key = e.key.toLowerCase()
+      if (key !== 'z' && key !== 'y') return
+      const target = e.target as HTMLElement | null
+      if (
+        (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) &&
+        target.dataset.dirty
+      ) {
+        return
+      }
+      e.preventDefault()
+      if (key === 'y' || (key === 'z' && e.shiftKey)) redo()
+      else undo()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo, redo])
 
   if (!doc || !snapshot || !loaded) {
     return <div className={styles.loading}>Loading sheet…</div>
@@ -101,6 +125,28 @@ export default function SheetView({ sheetId, onClose }: { sheetId: string; onClo
             <button type="button" className={styles.loadButton} onClick={onClose}>
               📁 Sheets
             </button>
+            <span className={styles.undoGroup}>
+              <button
+                type="button"
+                className={styles.undoButton}
+                onClick={undo}
+                disabled={!canUndo}
+                title="Undo (Ctrl/Cmd+Z)"
+                aria-label="Undo"
+              >
+                ↶
+              </button>
+              <button
+                type="button"
+                className={styles.undoButton}
+                onClick={redo}
+                disabled={!canRedo}
+                title="Redo (Ctrl/Cmd+Shift+Z)"
+                aria-label="Redo"
+              >
+                ↷
+              </button>
+            </span>
           </div>
           <div className={styles.headerRight}>
             <PresenceAvatars sheetId={sheetId} />

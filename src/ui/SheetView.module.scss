@@ -82,6 +82,32 @@
   }
 }
 
+.undoGroup {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.undoButton {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  border-radius: $radius-small;
+  width: 30px;
+  height: 28px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+
+  &:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+}
+
 .statusChip {
   display: inline-flex;
   align-items: center;
