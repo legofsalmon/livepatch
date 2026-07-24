@@ -31,6 +31,8 @@ export default defineConfig({
   ],
   test: {
     environment: 'node',
+    // Playwright specs in e2e/ are not vitest's to run
+    include: ['src/**/*.test.ts'],
     passWithNoTests: true,
   },
 })

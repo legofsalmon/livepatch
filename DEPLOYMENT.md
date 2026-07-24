@@ -83,11 +83,11 @@ meet.
 
 ## Environment variables (server)
 
-| Variable          | Default          | Purpose                                    |
-| ----------------- | ---------------- | ------------------------------------------ |
-| `PORT`            | `1234`           | HTTP + websocket port                      |
-| `HOST`            | `0.0.0.0`        | Bind address                               |
-| `LIVEPATCH_TOKEN` | *(empty = open)* | Shared token required from every client    |
-| `DATA_DIR`        | `server/data`    | Attachment storage location                |
+| Variable          | Default          | Purpose                                     |
+| ----------------- | ---------------- | ------------------------------------------- |
+| `PORT`            | `1234`           | HTTP + websocket port                       |
+| `HOST`            | `0.0.0.0`        | Bind address                                |
+| `LIVEPATCH_TOKEN` | _(empty = open)_ | Shared token required from every client     |
+| `DATA_DIR`        | `server/data`    | Attachment storage location                 |
 | `STATIC_DIR`      | auto (`../dist`) | Built app to serve; empty disables box mode |
-| `MAX_FILE_BYTES`  | `26214400`       | Attachment size cap (25 MB)                |
+| `MAX_FILE_BYTES`  | `26214400`       | Attachment size cap (25 MB)                 |

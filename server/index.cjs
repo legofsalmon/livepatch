@@ -26,7 +26,8 @@ const MAX_FILE_BYTES = Number(process.env.MAX_FILE_BYTES || 25 * 1024 * 1024)
 // built app is found (or STATIC_DIR points at it).
 const DEFAULT_STATIC = path.join(__dirname, '..', 'dist')
 const STATIC_DIR =
-  process.env.STATIC_DIR || (fs.existsSync(path.join(DEFAULT_STATIC, 'index.html')) ? DEFAULT_STATIC : '')
+  process.env.STATIC_DIR ||
+  (fs.existsSync(path.join(DEFAULT_STATIC, 'index.html')) ? DEFAULT_STATIC : '')
 
 fs.mkdirSync(FILES_DIR, { recursive: true })
 
@@ -143,10 +144,7 @@ let indexHtmlCache = null
 const boxIndexHtml = () => {
   if (indexHtmlCache === null) {
     const raw = fs.readFileSync(path.join(STATIC_DIR, 'index.html'), 'utf8')
-    indexHtmlCache = raw.replace(
-      '</head>',
-      '<script>window.__LIVEPATCH_BOX__=true</script></head>'
-    )
+    indexHtmlCache = raw.replace('</head>', '<script>window.__LIVEPATCH_BOX__=true</script></head>')
   }
   return indexHtmlCache
 }

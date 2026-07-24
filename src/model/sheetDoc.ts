@@ -367,7 +367,9 @@ export const snapshotSheet = (doc: Y.Doc): SheetSnapshot => {
       created: (meta.get('created') as string) ?? '',
     } satisfies SheetMeta,
     channels: channels.toArray().map((m) => m.toJSON() as Channel),
-    artists: artists.toArray().map((m) => ({ files: [], ...(m.toJSON() as Omit<Artist, 'files'>) })),
+    artists: artists
+      .toArray()
+      .map((m) => ({ files: [], ...(m.toJSON() as Omit<Artist, 'files'>) })),
     subBoxes: subBoxes.toArray().map((m) => m.toJSON() as SubBox),
     patches: patchesJson,
   }

@@ -14,7 +14,10 @@ function PresenceAvatars({ sheetId }: { sheetId: string }) {
   const peers = useRemotePeers(sheetDocName(sheetId))
   if (peers.length === 0) return null
   return (
-    <span className={styles.avatars} aria-label={`Also here: ${peers.map((p) => p.name).join(', ')}`}>
+    <span
+      className={styles.avatars}
+      aria-label={`Also here: ${peers.map((p) => p.name).join(', ')}`}
+    >
       {peers.slice(0, 5).map((peer) => (
         <span
           key={peer.clientId}
