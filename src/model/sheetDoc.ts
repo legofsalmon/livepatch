@@ -291,6 +291,38 @@ const getOrCreateEntry = (patches: Y.Map<YEntity>, key: string): YEntity => {
   return entry
 }
 
+/** Match raw text against defined sub-boxes (bare name or display name). */
+const resolveSubBoxRef = (subBoxes: Y.Array<YEntity>, raw: string): SubBox | undefined => {
+  const needle = raw.trim().toLowerCase()
+  if (!needle) return undefined
+  return subBoxes
+    .toArray()
+    .map((m) => m.toJSON() as SubBox)
+    .find(
+      (sb) =>
+        sb.name.trim().toLowerCase() === needle ||
+        subBoxDisplayName(sb).trim().toLowerCase() === needle
+    )
+}
+
+/** Write one field of one entry. Must run inside a transaction. */
+const writeFieldValue = (
+  roots: SheetRoots,
+  artistId: string,
+  channelId: string,
+  field: PatchField,
+  value: string
+) => {
+  const entry = getOrCreateEntry(roots.patches, patchKey(artistId, channelId))
+  if (field === 'subBox') {
+    const match = resolveSubBoxRef(roots.subBoxes, value)
+    entry.set('subBoxId', match ? match.id : null)
+    entry.set('subBoxText', match ? '' : value)
+  } else {
+    entry.set(field, value)
+  }
+}
+
 export const setPatchField = (
   doc: Y.Doc,
   artistId: string,
@@ -304,28 +336,121 @@ export const setPatchField = (
   })
 }
 
+// --- Range paste (Google Sheets migration) ----------------------------------
+
+export interface PasteColumn {
+  artistId: string
+  field: PatchField
+}
+
+/**
+ * Apply a rectangular block of values (e.g. pasted from Google Sheets) with
+ * the top-left cell at `startChannelId` × `columns[0]`. Rows beyond the last
+ * channel append new channels; values beyond `columns` are dropped by the
+ * caller. One transaction — a single undo step reverts the whole paste.
+ */
+export const pasteGrid = (
+  doc: Y.Doc,
+  startChannelId: string,
+  columns: PasteColumn[],
+  rows: string[][]
+): { addedChannels: number; writtenCells: number } => {
+  const roots = getSheetRoots(doc)
+  const { channels } = roots
+  let addedChannels = 0
+  let writtenCells = 0
+  transact(doc, () => {
+    const start = findById(channels, startChannelId)
+    if (!start) return
+    for (let r = 0; r < rows.length; r++) {
+      const index = start.index + r
+      let channelItem: YEntity
+      if (index < channels.length) {
+        channelItem = channels.get(index)
+      } else {
+        channels.push([mapFrom({ id: crypto.randomUUID(), label: String(channels.length + 1) })])
+        addedChannels++
+        channelItem = channels.get(channels.length - 1)
+      }
+      const channelId = channelItem.get('id') as string
+      const row = rows[r]
+      const width = Math.min(columns.length, row.length)
+      for (let c = 0; c < width; c++) {
+        writeFieldValue(roots, columns[c].artistId, channelId, columns[c].field, row[c])
+        writtenCells++
+      }
+    }
+  })
+  return { addedChannels, writtenCells }
+}
+
 /**
  * Set the sub-box cell from raw user text. If the text matches a defined
  * sub-box (by display name or bare name, case-insensitively), the cell stores
  * a reference to it; otherwise it stores the text as-is.
  */
 export const setPatchSubBox = (doc: Y.Doc, artistId: string, channelId: string, raw: string) => {
-  const { subBoxes, patches } = getSheetRoots(doc)
+  const roots = getSheetRoots(doc)
   transact(doc, () => {
-    const entry = getOrCreateEntry(patches, patchKey(artistId, channelId))
-    const needle = raw.trim().toLowerCase()
-    const match = needle
-      ? subBoxes
-          .toArray()
-          .map((m) => m.toJSON() as SubBox)
-          .find(
-            (sb) =>
-              sb.name.trim().toLowerCase() === needle ||
-              subBoxDisplayName(sb).trim().toLowerCase() === needle
-          )
-      : undefined
-    entry.set('subBoxId', match ? match.id : null)
-    entry.set('subBoxText', match ? '' : raw)
+    writeFieldValue(roots, artistId, channelId, 'subBox', raw)
+  })
+}
+
+// --- CSV import -------------------------------------------------------------
+
+export interface ImportedSheetData {
+  channels: { label: string }[]
+  artists: { name: string }[]
+  /** patches[artistIndex][channelIndex] — sparse. */
+  patches: Array<Array<Partial<Record<PatchField, string>> | undefined>>
+}
+
+/**
+ * Populate an empty doc from imported data (see importCsv.ts). One
+ * transaction; the caller clears the undo stack afterwards like createSheet.
+ */
+export const buildImportedSheet = (
+  doc: Y.Doc,
+  data: ImportedSheetData,
+  options: { title: string; now?: string }
+): void => {
+  const roots = getSheetRoots(doc)
+  const { meta, channels, artists } = roots
+  const now = options.now ?? new Date().toISOString()
+  transact(doc, () => {
+    meta.set('title', options.title.trim() || 'Imported Sheet')
+    meta.set('stage', '')
+    meta.set('date', todayIso())
+    meta.set('created', now)
+
+    const channelIds = data.channels.map((channel, i) => {
+      const id = crypto.randomUUID()
+      channels.push([mapFrom({ id, label: channel.label.trim() || String(i + 1) })])
+      return id
+    })
+
+    data.artists.forEach((artist, artistIndex) => {
+      const artistId = crypto.randomUUID()
+      artists.push([
+        mapFrom({
+          id: artistId,
+          name: artist.name.trim() || `Artist ${artistIndex + 1}`,
+          startTime: '19:00',
+          endTime: '20:00',
+          notes: '',
+          files: new Y.Array<ArtistFile>(),
+        }),
+      ])
+      const artistPatches = data.patches[artistIndex] ?? []
+      artistPatches.forEach((entry, channelIndex) => {
+        if (!entry) return
+        const channelId = channelIds[channelIndex]
+        if (!channelId) return
+        for (const [field, value] of Object.entries(entry)) {
+          if (value) writeFieldValue(roots, artistId, channelId, field as PatchField, value)
+        }
+      })
+    })
   })
 }
 

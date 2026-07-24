@@ -28,6 +28,10 @@ in git history.
 - Multiple sheets with a synced selector index (title, stage, date)
 - Patch grid: channels × artists, five fields per artist, always-editable cells with
   autocomplete suggestions; Enter commits, Escape reverts
+- **Google Sheets migration**: paste a copied range straight into the grid (fills
+  right/down, adds channels, one undo step), import whole CSVs as new sheets
+  (fuzzy header matching, Live Patch export round-trip), find (Ctrl+F) with
+  match highlighting, and Ctrl+D fill-down
 - Channel management: rename, insert, remove (with per-artist patches cleaned up)
 - Lineup manager: artists with start/end times and notes; "← Copy" duplicates the
   previous artist's patch
