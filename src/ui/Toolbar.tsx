@@ -12,11 +12,13 @@ export default function Toolbar({
   snapshot,
   onOpenSubBoxes,
   onOpenLineup,
+  onOpenVersions,
 }: {
   doc: Y.Doc
   snapshot: SheetSnapshot
   onOpenSubBoxes: () => void
   onOpenLineup: () => void
+  onOpenVersions: () => void
 }) {
   const { addToast } = useToasts()
 
@@ -82,6 +84,9 @@ export default function Toolbar({
           </button>
           <button type="button" onClick={onOpenLineup}>
             Lineup
+          </button>
+          <button type="button" onClick={onOpenVersions}>
+            Versions
           </button>
           <button type="button" className={styles.export} onClick={handleExport}>
             Export CSV

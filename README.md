@@ -27,7 +27,11 @@ in git history.
 
 - Multiple sheets with a synced selector index (title, stage, date)
 - Patch grid: channels × artists, five fields per artist, always-editable cells with
-  autocomplete suggestions; Enter commits, Escape reverts
+  autocomplete suggestions; Enter commits, Escape reverts, arrow keys move between
+  cells spreadsheet-style
+- **Version snapshots**: save a named copy of the sheet ("after soundcheck",
+  "pre-doors") and restore it later — restoring is one undo step, and versions sync
+  to other devices with the sheet
 - **Google Sheets migration**: paste a copied range straight into the grid (fills
   right/down, adds channels, one undo step), import whole CSVs as new sheets
   (fuzzy header matching, Live Patch export round-trip), find (Ctrl+F) with
