@@ -34,7 +34,7 @@ export default function PatchCell({
   remoteEditor?: { name: string; color: string }
   /** "row:col" position used for keyboard navigation between cells. */
   gridPos: string
-  onNavigate: (gridPos: string, rowDelta: number) => void
+  onNavigate: (gridPos: string, rowDelta: number, colDelta?: number) => void
   /** Multi-cell clipboard text (contains tab/newline) pasted while focused here. */
   onPasteRange: (gridPos: string, text: string) => void
   /** Display value of the same field one channel up — Ctrl/Cmd+D fills it in. */
@@ -99,6 +99,32 @@ export default function PatchCell({
               commitValue(valueAbove)
             }
             return
+          }
+          // Sheets-style arrows: up/down always move (the focus change commits
+          // any draft); left/right move from the text boundary or when the
+          // whole value is selected (as after arrowing in), so the caret still
+          // works for editing within a cell.
+          if (!e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey) {
+            const input = e.currentTarget
+            const len = input.value.length
+            const selStart = input.selectionStart ?? 0
+            const selEnd = input.selectionEnd ?? 0
+            const fullySelected = len > 0 && selStart === 0 && selEnd === len
+            if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+              e.preventDefault()
+              onNavigate(gridPos, e.key === 'ArrowDown' ? 1 : -1)
+              return
+            }
+            if (e.key === 'ArrowLeft' && (fullySelected || (selStart === 0 && selEnd === 0))) {
+              e.preventDefault()
+              onNavigate(gridPos, 0, -1)
+              return
+            }
+            if (e.key === 'ArrowRight' && (fullySelected || (selStart === len && selEnd === len))) {
+              e.preventDefault()
+              onNavigate(gridPos, 0, 1)
+              return
+            }
           }
           onKeyDown(e) // Enter commits via blur; Escape reverts
           if (e.key === 'Enter') onNavigate(gridPos, e.shiftKey ? -1 : 1)

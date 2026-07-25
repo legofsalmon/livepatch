@@ -55,6 +55,27 @@ test('Ctrl+D fills down from the cell above', async ({ browser }) => {
   await expect(below).toHaveValue('SM58')
 })
 
+test('arrow keys move between cells Sheets-style', async ({ browser }) => {
+  const page = await newDevice(browser)
+  await createSheet(page, uniqueName('Arrow Fest'))
+
+  await cell(page, 'Artist 1', '1', 'Input').click()
+  await page.keyboard.press('ArrowDown')
+  await expect(cell(page, 'Artist 1', '2', 'Input')).toBeFocused()
+  await page.keyboard.press('ArrowRight')
+  await expect(cell(page, 'Artist 1', '2', 'Description')).toBeFocused()
+  await page.keyboard.press('ArrowUp')
+  await expect(cell(page, 'Artist 1', '1', 'Description')).toBeFocused()
+  await page.keyboard.press('ArrowLeft')
+  await expect(cell(page, 'Artist 1', '1', 'Input')).toBeFocused()
+
+  // Typing then arrowing away commits the edit, Sheets-style.
+  await page.keyboard.type('Kick')
+  await page.keyboard.press('ArrowDown')
+  await expect(cell(page, 'Artist 1', '1', 'Input')).toHaveValue('Kick')
+  await expect(cell(page, 'Artist 1', '2', 'Input')).toBeFocused()
+})
+
 test('find highlights matches and Enter jumps to them', async ({ browser }) => {
   const page = await newDevice(browser)
   await createSheet(page, uniqueName('Find Fest'))

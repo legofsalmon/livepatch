@@ -9,6 +9,7 @@ import Toolbar from './Toolbar'
 import PatchGrid from './PatchGrid'
 import SubBoxManager from './SubBoxManager'
 import LineupManager from './LineupManager'
+import VersionManager from './VersionManager'
 import SyncSettingsDialog from './SyncSettingsDialog'
 import styles from './SheetView.module.scss'
 
@@ -99,6 +100,7 @@ export default function SheetView({ sheetId, onClose }: { sheetId: string; onClo
   const [showHeaders, setShowHeaders] = useState(true)
   const [showSubBoxes, setShowSubBoxes] = useState(false)
   const [showLineup, setShowLineup] = useState(false)
+  const [showVersions, setShowVersions] = useState(false)
   const [showSyncSettings, setShowSyncSettings] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const searchRef = useRef<HTMLInputElement>(null)
@@ -248,6 +250,7 @@ export default function SheetView({ sheetId, onClose }: { sheetId: string; onClo
           snapshot={snapshot}
           onOpenSubBoxes={() => setShowSubBoxes(true)}
           onOpenLineup={() => setShowLineup(true)}
+          onOpenVersions={() => setShowVersions(true)}
         />
       )}
 
@@ -267,6 +270,7 @@ export default function SheetView({ sheetId, onClose }: { sheetId: string; onClo
       {showLineup && (
         <LineupManager doc={doc} snapshot={snapshot} onClose={() => setShowLineup(false)} />
       )}
+      {showVersions && <VersionManager doc={doc} onClose={() => setShowVersions(false)} />}
       {showSyncSettings && <SyncSettingsDialog onClose={() => setShowSyncSettings(false)} />}
     </div>
   )

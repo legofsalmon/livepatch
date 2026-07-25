@@ -500,6 +500,37 @@ export const snapshotSheet = (doc: Y.Doc): SheetSnapshot => {
   }
 }
 
+/**
+ * Rewrite the five editable roots to exactly match a snapshot. Ids are
+ * preserved, so patch keys and sub-box references stay valid. One transaction
+ * with LOCAL_ORIGIN — restoring a saved version is a single undoable step.
+ */
+export const applySnapshot = (doc: Y.Doc, snapshot: SheetSnapshot): void => {
+  const { meta, channels, artists, subBoxes, patches } = getSheetRoots(doc)
+  transact(doc, () => {
+    meta.set('title', snapshot.meta.title)
+    meta.set('stage', snapshot.meta.stage)
+    meta.set('date', snapshot.meta.date)
+    meta.set('created', snapshot.meta.created)
+    channels.delete(0, channels.length)
+    channels.push(snapshot.channels.map((channel) => mapFrom({ ...channel })))
+    artists.delete(0, artists.length)
+    artists.push(
+      snapshot.artists.map(({ files, ...artist }) => {
+        const filesArray = new Y.Array<ArtistFile>()
+        if (files.length > 0) filesArray.push([...files])
+        return mapFrom({ ...artist, files: filesArray })
+      })
+    )
+    subBoxes.delete(0, subBoxes.length)
+    subBoxes.push(snapshot.subBoxes.map((subBox) => mapFrom({ ...subBox })))
+    for (const key of [...patches.keys()]) patches.delete(key)
+    for (const [key, entry] of Object.entries(snapshot.patches)) {
+      patches.set(key, mapFrom(entry as unknown as Record<string, unknown>))
+    }
+  })
+}
+
 /** The text a patch cell's sub-box column should display. */
 export const patchSubBoxDisplay = (entry: PatchEntry, subBoxes: SubBox[]): string => {
   if (entry.subBoxId) {

@@ -140,11 +140,12 @@ export default function PatchGrid({
     if (peer.editingCell) remoteEditors[peer.editingCell] = { name: peer.name, color: peer.color }
   }
 
-  // Enter/Shift+Enter moves down/up within the same column, spreadsheet-style.
-  const navigate = useCallback((gridPos: string, rowDelta: number) => {
+  // Enter/Shift+Enter and the arrow keys move between cells, spreadsheet-style.
+  // Moves off the grid's edge are no-ops (no matching input to focus).
+  const navigate = useCallback((gridPos: string, rowDelta: number, colDelta = 0) => {
     const [row, col] = gridPos.split(':').map(Number)
     const target = wrapperRef.current?.querySelector<HTMLInputElement>(
-      `input[data-grid-pos="${row + rowDelta}:${col}"]`
+      `input[data-grid-pos="${row + rowDelta}:${col + colDelta}"]`
     )
     if (target) {
       target.focus()

@@ -212,6 +212,40 @@
   }
 }
 
+.saveRow {
+  display: flex;
+  gap: 8px;
+
+  input {
+    flex: 1;
+  }
+
+  button {
+    white-space: nowrap;
+  }
+}
+
+.versionInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.versionName {
+  font-weight: 600;
+  color: $color-ink;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.versionMeta {
+  font-size: 0.78rem;
+  color: $color-muted;
+}
+
 .dialogActions {
   margin-top: 14px;
   display: flex;
